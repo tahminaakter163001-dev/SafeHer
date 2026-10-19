@@ -42,11 +42,21 @@ public class LoginActivity extends AppCompatActivity {
                         "Incorrect password",
                         Toast.LENGTH_SHORT).show();
 
-            } else {
-                Toast.makeText(this,
+            }
+            else {
+                Toast.makeText(LoginActivity.this,
                         "Login successful!",
                         Toast.LENGTH_SHORT).show();
+
+                Intent intent = new Intent(
+                        LoginActivity.this,
+                        DashboardActivity.class
+                );
+
+                startActivity(intent);
+                finish();
             }
+
         });
         TextView registerPrompt = findViewById(R.id.registerPrompt);
 
