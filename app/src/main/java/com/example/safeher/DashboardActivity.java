@@ -26,9 +26,11 @@ public class DashboardActivity extends AppCompatActivity {
         });
 
         safetyTipsButton.setOnClickListener(v -> {
-            Toast.makeText(this,
-                    "Safety Tips feature is coming soon",
-                    Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(
+                    DashboardActivity.this,
+                    SafetyTipsActivity.class
+            );
+            startActivity(intent);
         });
 
         profileButton.setOnClickListener(v -> {
