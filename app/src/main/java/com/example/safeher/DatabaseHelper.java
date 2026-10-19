@@ -139,5 +139,128 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    public User getAuthenticatedUser(String email, String password) {
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        android.database.Cursor cursor = null;
+
+        try {
+            cursor = db.query(
+                    TABLE_USERS,
+                    new String[]{
+                            COL_ID,
+                            COL_NAME,
+                            COL_EMAIL,
+                            COL_PASSWORD
+                    },
+                    COL_EMAIL + " = ?",
+                    new String[]{email},
+                    null, null, null
+            );
+
+            if (cursor.moveToFirst()) {
+
+                String storedHash = cursor.getString(
+                        cursor.getColumnIndexOrThrow(COL_PASSWORD)
+                );
+
+                String enteredHash = hashPassword(password);
+
+                if (enteredHash != null && enteredHash.equals(storedHash)) {
+
+                    int id = cursor.getInt(
+                            cursor.getColumnIndexOrThrow(COL_ID)
+                    );
+
+                    String name = cursor.getString(
+                            cursor.getColumnIndexOrThrow(COL_NAME)
+                    );
+
+                    String userEmail = cursor.getString(
+                            cursor.getColumnIndexOrThrow(COL_EMAIL)
+                    );
+
+                    return new User(id, name, userEmail);
+                }
+            }
+
+            return null;
+
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
+
+    public User getUserById(int userId) {
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        android.database.Cursor cursor = null;
+
+        try {
+            cursor = db.query(
+                    TABLE_USERS,
+                    new String[]{COL_ID, COL_NAME, COL_EMAIL},
+                    COL_ID + " = ?",
+                    new String[]{String.valueOf(userId)},
+                    null, null, null
+            );
+
+            if (cursor.moveToFirst()) {
+                int id = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(COL_ID)
+                );
+
+                String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(COL_NAME)
+                );
+
+                String email = cursor.getString(
+                        cursor.getColumnIndexOrThrow(COL_EMAIL)
+                );
+
+                return new User(id, name, email);
+            }
+
+            return null;
+
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
+
+    public boolean updateUserProfile(
+            int userId, String name, String email) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COL_NAME, name);
+            values.put(COL_EMAIL, email);
+
+            int rowsUpdated = db.update(
+                    TABLE_USERS,
+                    values,
+                    COL_ID + " = ?",
+                    new String[]{String.valueOf(userId)}
+            );
+
+            return rowsUpdated > 0;
+
+        } catch (android.database.sqlite.SQLiteConstraintException e) {
+            // The email may already belong to another account.
+            return false;
+
+        } finally {
+            db.close();
+        }
+    }
+
 
 }

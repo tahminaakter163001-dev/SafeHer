@@ -9,10 +9,14 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class DashboardActivity extends AppCompatActivity {
 
+    private SessionManager sessionManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
+
+        sessionManager = new SessionManager(this);
 
         Button sosButton = findViewById(R.id.sosButton);
         Button safetyTipsButton = findViewById(R.id.safetyTipsButton);
@@ -34,20 +38,24 @@ public class DashboardActivity extends AppCompatActivity {
         });
 
         profileButton.setOnClickListener(v -> {
-            Toast.makeText(this,
-                    "My Profile feature is coming soon",
-                    Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(
+                    DashboardActivity.this,
+                    ProfileActivity.class
+            );
+            startActivity(intent);
         });
 
         logoutButton.setOnClickListener(v -> {
+            sessionManager.clearSession();
+
             Intent intent = new Intent(
                     DashboardActivity.this,
                     LoginActivity.class
             );
 
             intent.setFlags(
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_ACTIVITY_CLEAR_TASK
             );
 
             startActivity(intent);
