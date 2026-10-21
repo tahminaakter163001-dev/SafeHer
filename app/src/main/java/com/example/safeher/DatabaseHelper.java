@@ -4,11 +4,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-
+import android.database.Cursor;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "safeher.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     public static final String TABLE_USERS = "users";
     public static final String COL_ID = "id";
@@ -30,14 +30,34 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         COL_PASSWORD + " TEXT NOT NULL)";
 
         db.execSQL(createUsersTable);
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS emergency_contacts (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "user_id INTEGER NOT NULL, " +
+                        "name TEXT NOT NULL, " +
+                        "phone_number TEXT NOT NULL, " +
+                        "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE" +
+                        ")"
+        );
     }
+
 
     @Override
     public void onUpgrade(SQLiteDatabase db,
                           int oldVersion, int newVersion) {
-        // Database schema upgrades will be handled here.
-    }
 
+        if (oldVersion < 2) {
+            db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS emergency_contacts (" +
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                            "user_id INTEGER NOT NULL, " +
+                            "name TEXT NOT NULL, " +
+                            "phone_number TEXT NOT NULL, " +
+                            "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ")"
+            );
+        }
+    }
 
     public boolean registerUser(String name,
                                 String email,
@@ -260,6 +280,93 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         } finally {
             db.close();
         }
+    }
+
+    public long addEmergencyContact(int userId, String name,
+                                    String phoneNumber) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("user_id", userId);
+        values.put("name", name);
+        values.put("phone_number", phoneNumber);
+
+        return db.insert("emergency_contacts", null, values);
+    }
+
+    public java.util.ArrayList<EmergencyContact> getEmergencyContacts(
+            int userId) {
+
+        java.util.ArrayList<EmergencyContact> contacts =
+                new java.util.ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(
+                "emergency_contacts",
+                new String[]{"id", "user_id", "name", "phone_number"},
+                "user_id = ?",
+                new String[]{String.valueOf(userId)},
+                null,
+                null,
+                "name ASC"
+        );
+
+        try {
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(
+                        cursor.getColumnIndexOrThrow("id"));
+                int ownerId = cursor.getInt(
+                        cursor.getColumnIndexOrThrow("user_id"));
+                String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow("name"));
+                String phone = cursor.getString(
+                        cursor.getColumnIndexOrThrow("phone_number"));
+
+                contacts.add(new EmergencyContact(
+                        id, ownerId, name, phone));
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return contacts;
+    }
+
+    public boolean updateEmergencyContact(int contactId, int userId,
+                                          String name, String phoneNumber) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("name", name);
+        values.put("phone_number", phoneNumber);
+
+        int rowsUpdated = db.update(
+                "emergency_contacts",
+                values,
+                "id = ? AND user_id = ?",
+                new String[]{
+                        String.valueOf(contactId),
+                        String.valueOf(userId)
+                }
+        );
+
+        return rowsUpdated > 0;
+    }
+
+    public boolean deleteEmergencyContact(int contactId, int userId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        int rowsDeleted = db.delete(
+                "emergency_contacts",
+                "id = ? AND user_id = ?",
+                new String[]{
+                        String.valueOf(contactId),
+                        String.valueOf(userId)
+                }
+        );
+
+        return rowsDeleted > 0;
     }
 
 

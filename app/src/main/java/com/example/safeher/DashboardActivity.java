@@ -22,6 +22,7 @@ public class DashboardActivity extends AppCompatActivity {
         Button safetyTipsButton = findViewById(R.id.safetyTipsButton);
         Button profileButton = findViewById(R.id.profileButton);
         Button logoutButton = findViewById(R.id.logoutButton);
+        Button emergencyContactsButton = findViewById(R.id.emergencyContactsButton);
 
         sosButton.setOnClickListener(v -> {
             Toast.makeText(this,
@@ -41,6 +42,14 @@ public class DashboardActivity extends AppCompatActivity {
             Intent intent = new Intent(
                     DashboardActivity.this,
                     ProfileActivity.class
+            );
+            startActivity(intent);
+        });
+
+        emergencyContactsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    DashboardActivity.this,
+                    EmergencyContactsActivity.class
             );
             startActivity(intent);
         });

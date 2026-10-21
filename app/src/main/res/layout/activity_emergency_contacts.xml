@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF7FA"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/emergencyContactsTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Emergency Contacts"
+        android:textColor="#29202A"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/emergencyContactsSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Add people you trust to contact in an emergency."
+        android:textColor="#756875"
+        android:textSize="15sp"
+        app:layout_constraintTop_toBottomOf="@id/emergencyContactsTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/addEmergencyContactButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:backgroundTint="#D63384"
+        android:text="+ Add Emergency Contact"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/emergencyContactsSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/emptyContactsText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:gravity="center"
+        android:text="No emergency contacts yet.\nAdd someone you trust."
+        android:textColor="#756875"
+        android:textSize="16sp"
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@id/addEmergencyContactButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/emergencyContactsRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:clipToPadding="false"
+        android:paddingBottom="12dp"
+        app:layout_constraintTop_toBottomOf="@id/addEmergencyContactButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
