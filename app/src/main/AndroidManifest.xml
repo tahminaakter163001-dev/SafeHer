@@ -46,6 +46,9 @@
         <activity
             android:name=".EmergencyContactsActivity"
             android:exported="false" />
+        <activity
+            android:name=".EmergencySOSActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -25,9 +25,11 @@ public class DashboardActivity extends AppCompatActivity {
         Button emergencyContactsButton = findViewById(R.id.emergencyContactsButton);
 
         sosButton.setOnClickListener(v -> {
-            Toast.makeText(this,
-                    "Emergency SOS feature is coming soon",
-                    Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(
+                    DashboardActivity.this,
+                    EmergencySOSActivity.class
+            );
+            startActivity(intent);
         });
 
         safetyTipsButton.setOnClickListener(v -> {
