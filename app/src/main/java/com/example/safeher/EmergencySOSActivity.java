@@ -27,6 +27,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.Priority;
+import androidx.activity.OnBackPressedCallback;
 
 public class EmergencySOSActivity extends AppCompatActivity {
 
@@ -43,6 +44,8 @@ public class EmergencySOSActivity extends AppCompatActivity {
     private double currentLongitude;
     private boolean locationAvailable = false;
     private boolean isSOSPending = false;
+    private RealtimeDatabaseHelper realtimeDatabaseHelper;
+    private boolean isTrackingActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,7 @@ public class EmergencySOSActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(this);
+        realtimeDatabaseHelper = new RealtimeDatabaseHelper();
 
         if (!sessionManager.isLoggedIn()) {
             finish();
@@ -69,17 +73,54 @@ public class EmergencySOSActivity extends AppCompatActivity {
                 "No emergency message has been sent."
         );
 
-        backButton.setOnClickListener(v -> finish());
+        backButton.setOnClickListener(v -> {
 
+            if (isTrackingActive) {
+
+                Toast.makeText(
+                        this,
+                        "Please stop SOS tracking before leaving.",
+                        Toast.LENGTH_LONG
+                ).show();
+
+            } else {
+                finish();
+            }
+        });
+        getOnBackPressedDispatcher().addCallback(
+                this,
+                new OnBackPressedCallback(true) {
+
+                    @Override
+                    public void handleOnBackPressed() {
+
+                        if (isTrackingActive) {
+
+                            Toast.makeText(
+                                    EmergencySOSActivity.this,
+                                    "Please stop SOS tracking before leaving.",
+                                    Toast.LENGTH_LONG
+                            ).show();
+
+                        } else {
+                            finish();
+                        }
+                    }
+                }
+        );
         // SOS button click listener
         Button sendSOSButton =
                 findViewById(R.id.sendSOSButton);
 
-        sendSOSButton.setOnClickListener(
-                v -> sendSOSAlert()
-        );
+        sendSOSButton.setOnClickListener(v -> {
 
-        checkLocationPermission();
+            if (isTrackingActive) {
+                stopSOSTracking();
+            } else {
+                sendSOSAlert();
+            }
+        });
+
         loadTrustedContacts();
     }
 
@@ -255,6 +296,34 @@ public class EmergencySOSActivity extends AppCompatActivity {
                         "My current location:\n" +
                         "https://maps.google.com/?q=" +
                         currentLatitude + "," + currentLongitude;
+        realtimeDatabaseHelper.startSOS(
+                currentLatitude,
+                currentLongitude
+        );
+        Intent trackingIntent =
+                new Intent(this, LocationTrackingService.class);
+
+        if (android.os.Build.VERSION.SDK_INT >=
+                android.os.Build.VERSION_CODES.O) {
+
+            startForegroundService(trackingIntent);
+
+        } else {
+
+            startService(trackingIntent);
+        }
+        isTrackingActive = true;
+
+        Button sendSOSButton = findViewById(R.id.sendSOSButton);
+        sendSOSButton.setText("Stop SOS");
+        sendSOSButton.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(
+                        android.graphics.Color.parseColor("#388E3C")
+                )
+        );
+
+        TextView statusText = findViewById(R.id.sosStatusText);
+        statusText.setText("SOS Active - Live location tracking is running.");
 
         ArrayList<String> phoneNumbers = new ArrayList<>();
 
@@ -319,5 +388,33 @@ public class EmergencySOSActivity extends AppCompatActivity {
                 ).show();
             }
         }
+    }
+    private void stopSOSTracking() {
+
+        Intent trackingIntent =
+                new Intent(this, LocationTrackingService.class);
+
+        stopService(trackingIntent);
+
+        realtimeDatabaseHelper.stopSOS();
+
+        isTrackingActive = false;
+
+        Button sendSOSButton = findViewById(R.id.sendSOSButton);
+        sendSOSButton.setText("Send SOS");
+        sendSOSButton.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(
+                        android.graphics.Color.parseColor("#D32F2F")
+                )
+        );
+
+        TextView statusText = findViewById(R.id.sosStatusText);
+        statusText.setText("SOS ended. Live location tracking stopped.");
+
+        Toast.makeText(
+                this,
+                "SOS stopped successfully.",
+                Toast.LENGTH_SHORT
+        ).show();
     }
 }
