@@ -288,18 +288,16 @@ public class EmergencySOSActivity extends AppCompatActivity {
             ).show();
         });
     }
+
     private void openSOSMessage() {
 
-        String message =
-                "EMERGENCY SOS! I may be in danger. " +
-                        "Please contact me as soon as possible.\n\n" +
-                        "My current location:\n" +
-                        "https://maps.google.com/?q=" +
-                        currentLatitude + "," + currentLongitude;
+        // Start saving SOS information in Firebase
         realtimeDatabaseHelper.startSOS(
                 currentLatitude,
                 currentLongitude
         );
+
+        // Start continuous GPS tracking
         Intent trackingIntent =
                 new Intent(this, LocationTrackingService.class);
 
@@ -309,21 +307,77 @@ public class EmergencySOSActivity extends AppCompatActivity {
             startForegroundService(trackingIntent);
 
         } else {
-
             startService(trackingIntent);
         }
+
         isTrackingActive = true;
 
-        Button sendSOSButton = findViewById(R.id.sendSOSButton);
+        Button sendSOSButton =
+                findViewById(R.id.sendSOSButton);
+
         sendSOSButton.setText("Stop SOS");
+
         sendSOSButton.setBackgroundTintList(
                 android.content.res.ColorStateList.valueOf(
                         android.graphics.Color.parseColor("#388E3C")
                 )
         );
 
-        TextView statusText = findViewById(R.id.sosStatusText);
-        statusText.setText("SOS Active - Live location tracking is running.");
+        TextView statusText =
+                findViewById(R.id.sosStatusText);
+
+        statusText.setText(
+                "SOS Active - Live location tracking is running."
+        );
+
+        // Get readable address from API
+        GeocodingHelper.getAddress(
+                currentLatitude,
+                currentLongitude,
+                new GeocodingHelper.AddressCallback() {
+
+                    @Override
+                    public void onSuccess(String address) {
+
+                        openSMSComposer(address);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+
+                        // If API fails, send coordinates only
+                        openSMSComposer(null);
+
+                        Toast.makeText(
+                                EmergencySOSActivity.this,
+                                "Address could not be fetched. Sending GPS coordinates instead.",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                }
+        );
+    }
+
+    private void openSMSComposer(String address) {
+
+        String message =
+                "EMERGENCY SOS! I may be in danger. " +
+                        "Please contact me as soon as possible.\n\n" +
+                        "My current location:\n";
+
+        if (address != null && !address.isEmpty()) {
+
+            message +=
+                    "Address: " + address + "\n\n";
+        }
+
+        message +=
+                "GPS Coordinates: " +
+                        currentLatitude + ", " + currentLongitude +
+                        "\n\n" +
+                        "Google Maps:\n" +
+                        "https://maps.google.com/?q=" +
+                        currentLatitude + "," + currentLongitude;
 
         ArrayList<String> phoneNumbers = new ArrayList<>();
 
@@ -336,13 +390,21 @@ public class EmergencySOSActivity extends AppCompatActivity {
                 phoneNumbers
         );
 
-        Intent smsIntent = new Intent(Intent.ACTION_SENDTO);
-        smsIntent.setData(Uri.parse("smsto:" + recipients));
+        Intent smsIntent =
+                new Intent(Intent.ACTION_SENDTO);
+
+        smsIntent.setData(
+                Uri.parse("smsto:" + recipients)
+        );
+
         smsIntent.putExtra("sms_body", message);
 
         try {
+
             startActivity(smsIntent);
+
         } catch (android.content.ActivityNotFoundException e) {
+
             Toast.makeText(
                     this,
                     "No SMS application found.",
@@ -350,6 +412,7 @@ public class EmergencySOSActivity extends AppCompatActivity {
             ).show();
         }
     }
+
     @Override
     public void onRequestPermissionsResult(
             int requestCode,
