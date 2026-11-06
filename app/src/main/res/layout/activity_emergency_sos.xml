@@ -117,7 +117,7 @@
         android:layout_marginTop="8dp"
         android:fillViewport="true"
         app:layout_constraintTop_toBottomOf="@id/sosContactsHint"
-        app:layout_constraintBottom_toTopOf="@id/sosBackButton"
+        app:layout_constraintBottom_toTopOf="@id/sendSOSButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -130,6 +130,20 @@
 
     </ScrollView>
 
+    <Button
+        android:id="@+id/sendSOSButton"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="#D32F2F"
+        android:text="SEND SOS ALERT"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        app:cornerRadius="12dp"
+        app:layout_constraintBottom_toTopOf="@id/sosBackButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
     <Button
         android:id="@+id/sosBackButton"
         android:layout_width="0dp"

@@ -103,6 +103,62 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.close();
         }
     }
+    // Delete a specific local account by email
+    public boolean deleteLocalAccountByEmail(String email) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        db.beginTransaction();
+
+        android.database.Cursor cursor = null;
+
+        try {
+            cursor = db.query(
+                    TABLE_USERS,
+                    new String[]{COL_ID},
+                    COL_EMAIL + " = ?",
+                    new String[]{email},
+                    null, null, null
+            );
+
+            if (!cursor.moveToFirst()) {
+                return false;
+            }
+
+            int userId = cursor.getInt(0);
+            cursor.close();
+            cursor = null;
+
+            // Delete this user's emergency contacts first
+            db.delete(
+                    "emergency_contacts",
+                    "user_id = ?",
+                    new String[]{String.valueOf(userId)}
+            );
+
+            // Delete the local user account
+            int deletedRows = db.delete(
+                    TABLE_USERS,
+                    COL_ID + " = ?",
+                    new String[]{String.valueOf(userId)}
+            );
+
+            if (deletedRows > 0) {
+                db.setTransactionSuccessful();
+                return true;
+            }
+
+            return false;
+
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+
+            db.endTransaction();
+            db.close();
+        }
+    }
     public boolean isFirebaseAccount(String email) {
 
         SQLiteDatabase db = this.getReadableDatabase();

@@ -1,6 +1,7 @@
 
 package com.example.safeher;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.widget.Button;
@@ -17,104 +18,197 @@ public class RegisterActivity extends AppCompatActivity {
 
     private FirebaseAuth firebaseAuth;
     private DatabaseHelper databaseHelper;
+    private FirestoreHelper firestoreHelper;
+
+    private EditText fullNameInput;
+    private EditText emailInput;
+    private EditText passwordInput;
+    private Button registerButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        EditText fullNameInput = findViewById(R.id.fullNameInput);
-        EditText emailInput = findViewById(R.id.emailInput);
-        EditText passwordInput =
-                findViewById(R.id.registerPasswordInput);
+        fullNameInput = findViewById(R.id.fullNameInput);
+        emailInput = findViewById(R.id.emailInput);
+        passwordInput = findViewById(R.id.registerPasswordInput);
 
-        Button registerButton = findViewById(R.id.registerButton);
+        registerButton = findViewById(R.id.registerButton);
         TextView backToLogin = findViewById(R.id.backToLogin);
 
-        // Initialize Firebase
         FirebaseApp.initializeApp(this);
         firebaseAuth = FirebaseAuth.getInstance();
 
         databaseHelper = new DatabaseHelper(this);
+        firestoreHelper = new FirestoreHelper();
 
-        registerButton.setOnClickListener(v -> {
+        registerButton.setOnClickListener(v -> validateRegistration());
 
-            String name = fullNameInput.getText().toString().trim();
-            String email = emailInput.getText().toString().trim();
-            String password = passwordInput.getText().toString();
+        backToLogin.setOnClickListener(v -> finish());
+    }
 
-            if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+    private void validateRegistration() {
 
-                Toast.makeText(this,
-                        "Please fill in all fields",
-                        Toast.LENGTH_SHORT).show();
+        String name = fullNameInput.getText().toString().trim();
 
-            } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        String email = emailInput.getText().toString()
+                .trim()
+                .toLowerCase(java.util.Locale.ROOT);
 
-                Toast.makeText(this,
-                        "Please enter a valid email address",
-                        Toast.LENGTH_SHORT).show();
+        String password = passwordInput.getText().toString();
 
-            } else if (password.length() < 8) {
+        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
 
-                Toast.makeText(this,
-                        "Password must contain at least 8 characters",
-                        Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Please fill in all fields",
+                    Toast.LENGTH_SHORT).show();
 
-            } else if (databaseHelper.emailExists(email)) {
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
 
-                Toast.makeText(this,
-                        "This email already exists in your local accounts.",
-                        Toast.LENGTH_LONG).show();
+            Toast.makeText(this,
+                    "Please enter a valid email address",
+                    Toast.LENGTH_SHORT).show();
 
-            } else {
+        } else if (password.length() < 8) {
 
-                registerButton.setEnabled(false);
+            Toast.makeText(this,
+                    "Password must contain at least 8 characters",
+                    Toast.LENGTH_SHORT).show();
 
-                firebaseAuth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener(this, task -> {
+        } else if (databaseHelper.emailExists(email)) {
 
-                            if (task.isSuccessful()) {
+            showLocalAccountConfirmation(name, email, password);
 
-                                boolean localRegistered =
-                                        databaseHelper.registerFirebaseUser(
-                                                name, email
-                                        );
+        } else {
 
-                                if (localRegistered) {
+            createFirebaseAccount(name, email, password, false);
+        }
+    }
 
-                                    Toast.makeText(this,
-                                            "Account created successfully!",
-                                            Toast.LENGTH_SHORT).show();
+    // Ask before deleting an existing local account
+    private void showLocalAccountConfirmation(
+            String name,
+            String email,
+            String password) {
 
-                                    finish();
+        new AlertDialog.Builder(this)
+                .setTitle("Existing Local Account")
+                .setMessage(
+                        "This email already exists in your local database.\n\n"
+                                + "If you continue, the old local account "
+                                + "and its emergency contacts will be deleted "
+                                + "after Firebase registration succeeds.\n\n"
+                                + "Do you want to continue?"
+                )
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete & Continue",
+                        (dialog, which) -> {
 
-                                } else {
+                            createFirebaseAccount(
+                                    name, email, password, true
+                            );
+                        })
+                .show();
+    }
 
-                                    Toast.makeText(this,
-                                            "Firebase account created, but local profile creation failed.",
-                                            Toast.LENGTH_LONG).show();
+    // Create Firebase account
+    private void createFirebaseAccount(
+            String name,
+            String email,
+            String password,
+            boolean replaceLocalAccount) {
 
-                                    registerButton.setEnabled(true);
-                                }
+        registerButton.setEnabled(false);
 
-                            } else {
+        firebaseAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
 
-                                String errorMessage =
-                                        task.getException() != null
-                                                ? task.getException().getMessage()
-                                                : "Registration failed.";
+                    if (task.isSuccessful()) {
+
+                        // Delete old local account only after
+                        // Firebase registration succeeds
+                        if (replaceLocalAccount) {
+
+                            boolean deleted =
+                                    databaseHelper.deleteLocalAccountByEmail(email);
+
+                            if (!deleted) {
 
                                 Toast.makeText(this,
-                                        errorMessage,
+                                        "Firebase account created, but old local "
+                                                + "account could not be deleted.",
                                         Toast.LENGTH_LONG).show();
 
                                 registerButton.setEnabled(true);
+                                return;
                             }
-                        });
-            }
-        });
+                        }
 
-        backToLogin.setOnClickListener(v -> finish());
+                        saveNewLocalAccount(name, email);
+
+                    } else {
+
+                        String errorMessage =
+                                task.getException() != null
+                                        ? task.getException().getMessage()
+                                        : "Registration failed.";
+
+                        Toast.makeText(this,
+                                errorMessage,
+                                Toast.LENGTH_LONG).show();
+
+                        registerButton.setEnabled(true);
+                    }
+                });
+    }
+
+    // Save new local account and Firestore profile
+    private void saveNewLocalAccount(String name, String email) {
+
+        boolean localRegistered =
+                databaseHelper.registerFirebaseUser(name, email);
+
+        if (!localRegistered) {
+
+            Toast.makeText(this,
+                    "Firebase account created, but local profile creation failed.",
+                    Toast.LENGTH_LONG).show();
+
+            registerButton.setEnabled(true);
+            return;
+        }
+
+        firestoreHelper.saveUserProfile(
+                name,
+                email,
+                new FirestoreHelper.OnProfileSaveListener() {
+
+                    @Override
+                    public void onSuccess() {
+
+                        Toast.makeText(
+                                RegisterActivity.this,
+                                "Account created successfully!",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        finish();
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+
+                        Toast.makeText(
+                                RegisterActivity.this,
+                                "Account created, but cloud profile save failed: "
+                                        + error,
+                                Toast.LENGTH_LONG
+                        ).show();
+
+                        registerButton.setEnabled(true);
+                    }
+                }
+        );
     }
 }
