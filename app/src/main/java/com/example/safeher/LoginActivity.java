@@ -1,15 +1,22 @@
 package com.example.safeher;
 
 import android.os.Bundle;
+import android.content.Intent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+
 public class LoginActivity extends AppCompatActivity {
+
+    private FirebaseAuth firebaseAuth;
+    private DatabaseHelper databaseHelper;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,11 +25,16 @@ public class LoginActivity extends AppCompatActivity {
 
         EditText usernameInput = findViewById(R.id.usernameInput);
         EditText passwordInput = findViewById(R.id.passwordInput);
+
         Button loginButton = findViewById(R.id.loginButton);
         TextView registerPrompt = findViewById(R.id.registerPrompt);
 
-        DatabaseHelper databaseHelper = new DatabaseHelper(this);
-        SessionManager sessionManager = new SessionManager(this);
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this);
+        firebaseAuth = FirebaseAuth.getInstance();
+
+        databaseHelper = new DatabaseHelper(this);
+        sessionManager = new SessionManager(this);
 
         loginButton.setOnClickListener(v -> {
 
@@ -50,44 +62,98 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            User user = databaseHelper.getAuthenticatedUser(
-                    email, password
-            );
+            loginButton.setEnabled(false);
 
-            if (user == null) {
+            // Check whether this is a Firebase account
+            if (databaseHelper.isFirebaseAccount(email)) {
 
-                Toast.makeText(this,
-                        "Incorrect password",
-                        Toast.LENGTH_SHORT).show();
+                // Firebase login
+                firebaseAuth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener(this, task -> {
 
-                return;
+                            if (task.isSuccessful()) {
+
+                                User user = databaseHelper.getUserByEmail(email);
+
+                                if (user != null) {
+
+                                    openDashboard(user);
+
+                                } else {
+
+                                    Toast.makeText(this,
+                                            "Account profile not found locally.",
+                                            Toast.LENGTH_LONG).show();
+
+                                    loginButton.setEnabled(true);
+                                }
+
+                            } else {
+
+                                String errorMessage =
+                                        task.getException() != null
+                                                ? task.getException().getMessage()
+                                                : "Login failed.";
+
+                                Toast.makeText(this,
+                                        errorMessage,
+                                        Toast.LENGTH_LONG).show();
+
+                                loginButton.setEnabled(true);
+                            }
+                        });
+
+            } else {
+
+                // Existing SQLite login
+                User user = databaseHelper.getAuthenticatedUser(
+                        email, password
+                );
+
+                if (user != null) {
+
+                    openDashboard(user);
+
+                } else {
+
+                    Toast.makeText(this,
+                            "Incorrect password",
+                            Toast.LENGTH_SHORT).show();
+
+                    loginButton.setEnabled(true);
+                }
             }
-
-            sessionManager.saveUser(
-                    user.getId(),
-                    user.getFullName(),
-                    user.getEmail()
-            );
-
-            Toast.makeText(this,
-                    "Login successful!",
-                    Toast.LENGTH_SHORT).show();
-
-            Intent intent = new Intent(
-                    LoginActivity.this,
-                    DashboardActivity.class
-            );
-
-            startActivity(intent);
-            finish();
         });
 
         registerPrompt.setOnClickListener(v -> {
+
             Intent intent = new Intent(
                     LoginActivity.this,
                     RegisterActivity.class
             );
+
             startActivity(intent);
         });
+    }
+
+    private void openDashboard(User user) {
+
+        sessionManager.saveUser(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail()
+        );
+
+        Toast.makeText(this,
+                "Login successful!",
+                Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(
+                LoginActivity.this,
+                DashboardActivity.class
+        );
+
+        startActivity(intent);
+        finish();
     }
 }

@@ -84,7 +84,95 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.close();
         }
     }
+    public boolean registerFirebaseUser(String name, String email) {
 
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COL_NAME, name);
+            values.put(COL_EMAIL, email);
+
+            // Marker only; the actual password is managed by Firebase.
+            values.put(COL_PASSWORD, "FIREBASE_AUTH");
+
+            long result = db.insert(TABLE_USERS, null, values);
+            return result != -1;
+
+        } finally {
+            db.close();
+        }
+    }
+    public boolean isFirebaseAccount(String email) {
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+
+        try {
+            cursor = db.query(
+                    TABLE_USERS,
+                    new String[]{COL_PASSWORD},
+                    COL_EMAIL + " = ?",
+                    new String[]{email},
+                    null, null, null
+            );
+
+            if (cursor.moveToFirst()) {
+                String storedPassword = cursor.getString(0);
+                return "FIREBASE_AUTH".equals(storedPassword);
+            }
+
+            return false;
+
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
+
+
+    public User getUserByEmail(String email) {
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+
+        try {
+            cursor = db.query(
+                    TABLE_USERS,
+                    new String[]{COL_ID, COL_NAME, COL_EMAIL},
+                    COL_EMAIL + " = ?",
+                    new String[]{email},
+                    null, null, null
+            );
+
+            if (cursor.moveToFirst()) {
+
+                int id = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(COL_ID)
+                );
+
+                String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(COL_NAME)
+                );
+
+                String userEmail = cursor.getString(
+                        cursor.getColumnIndexOrThrow(COL_EMAIL)
+                );
+
+                return new User(id, name, userEmail);
+            }
+
+            return null;
+
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
     private String hashPassword(String password) {
         try {
             java.security.MessageDigest digest =

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="gcm_defaultSenderId" translatable="false">819411843995</string>
+
+    <string name="google_api_key" translatable="false">AIzaSyDqKFfuJ41579LFtzr6wpQdEtelBkbx1zY</string>
+
+    <string name="google_app_id" translatable="false">1:819411843995:android:852c2da7c3ebb1d1c67f3e</string>
+
+    <string name="google_crash_reporting_api_key" translatable="false">1AIzaSyDqKFfuJ41579LFtzr6wpQdEtelBkbx1zY</string>
+
+    <string name="google_storage_bucket" translatable="false">safeher-46172.firebasestorage.app</string>
+
+    <string name="project_id" translatable="false">safeher-46172</string>
+
+</resources>
