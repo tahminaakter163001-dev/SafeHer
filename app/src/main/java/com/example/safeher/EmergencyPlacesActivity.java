@@ -3,6 +3,7 @@ package com.example.safeher;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,11 +24,12 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class EmergencyPlacesActivity extends AppCompatActivity {
 
     private static final int LOCATION_PERMISSION_CODE = 200;
-    private static final long GEOCODING_DELAY = 1100;
+    private static final long GEOCODING_DELAY = 300;
 
     private FusedLocationProviderClient fusedLocationClient;
 
@@ -42,6 +44,8 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
 
     private final Handler geocodingHandler =
             new Handler(Looper.getMainLooper());
+
+    private boolean activityDestroyed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,10 +102,44 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
 
         try {
 
+            // First try to get the last known location.
+            fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(location -> {
+
+                        if (location != null) {
+
+                            fetchEmergencyPlaces(
+                                    location.getLatitude(),
+                                    location.getLongitude()
+                            );
+
+                        } else {
+
+                            requestFreshLocation();
+                        }
+                    })
+                    .addOnFailureListener(e ->
+                            requestFreshLocation()
+                    );
+
+        } catch (SecurityException e) {
+
+            showError("Location permission is required.");
+        }
+    }
+
+    private void requestFreshLocation() {
+
+        if (activityDestroyed) return;
+
+        try {
+
             fusedLocationClient.getCurrentLocation(
                     Priority.PRIORITY_HIGH_ACCURACY,
                     null
             ).addOnSuccessListener(location -> {
+
+                if (activityDestroyed) return;
 
                 if (location != null) {
 
@@ -117,9 +155,12 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
                     );
                 }
 
-            }).addOnFailureListener(e ->
-                    showError("Location error: " + e.getMessage())
-            );
+            }).addOnFailureListener(e -> {
+
+                if (!activityDestroyed) {
+                    showError("Location error: " + e.getMessage());
+                }
+            });
 
         } catch (SecurityException e) {
 
@@ -132,8 +173,10 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
             double longitude
     ) {
 
+        if (activityDestroyed) return;
+
         locationStatus.setText(
-                "Searching within 5 km of your location..."
+                "Searching emergency services within 3 km..."
         );
 
         EmergencyPlacesApi.fetchNearbyPlaces(
@@ -142,9 +185,9 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
                 new EmergencyPlacesApi.PlacesCallback() {
 
                     @Override
-                    public void onSuccess(
-                            java.util.List<EmergencyPlace> places
-                    ) {
+                    public void onSuccess(List<EmergencyPlace> places) {
+
+                        if (activityDestroyed) return;
 
                         progressBar.setVisibility(View.GONE);
                         retryButton.setVisibility(View.GONE);
@@ -154,10 +197,14 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
                             placesRecyclerView.setAdapter(null);
 
                             emptyMessage.setText(
-                                    "No emergency services found nearby."
+                                    "No emergency services found within 3 km."
                             );
 
                             emptyMessage.setVisibility(View.VISIBLE);
+
+                            locationStatus.setText(
+                                    "Search completed."
+                            );
 
                         } else {
 
@@ -172,10 +219,10 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
 
                             locationStatus.setText(
                                     "Found " + places.size()
-                                            + " emergency services. "
-                                            + "Checking addresses..."
+                                            + " emergency services nearby."
                             );
 
+                            // Load missing addresses in the background.
                             geocodeMissingAddresses(0);
                         }
                     }
@@ -183,9 +230,11 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
                     @Override
                     public void onError(String error) {
 
-                        showError(
-                                "Unable to load nearby places: " + error
-                        );
+                        if (!activityDestroyed) {
+                            showError(
+                                    "Unable to load nearby places: " + error
+                            );
+                        }
                     }
                 }
         );
@@ -193,9 +242,10 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
 
     private void geocodeMissingAddresses(int startIndex) {
 
+        if (activityDestroyed || nearbyPlaces == null) return;
+
         int index = startIndex;
 
-        // Skip places that already have an address.
         while (index < nearbyPlaces.size()) {
 
             String address = nearbyPlaces.get(index).getAddress();
@@ -207,7 +257,6 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
             index++;
         }
 
-        // All places have been checked.
         if (index >= nearbyPlaces.size()) {
 
             locationStatus.setText(
@@ -229,12 +278,13 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(String address) {
 
+                        if (activityDestroyed) return;
+
                         placesAdapter.updatePlaceAddress(
                                 currentIndex,
                                 address
                         );
 
-                        // Wait before requesting the next address.
                         geocodingHandler.postDelayed(
                                 () -> geocodeMissingAddresses(
                                         currentIndex + 1
@@ -246,7 +296,8 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
                     @Override
                     public void onError(String error) {
 
-                        // Continue even if one address cannot be found.
+                        if (activityDestroyed) return;
+
                         geocodingHandler.postDelayed(
                                 () -> geocodeMissingAddresses(
                                         currentIndex + 1
@@ -268,6 +319,8 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
     }
 
     private void showError(String message) {
+
+        if (activityDestroyed) return;
 
         progressBar.setVisibility(View.GONE);
 
@@ -326,6 +379,8 @@ public class EmergencyPlacesActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+
+        activityDestroyed = true;
 
         geocodingHandler.removeCallbacksAndMessages(null);
 
