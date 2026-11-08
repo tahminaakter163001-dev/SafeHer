@@ -7,8 +7,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FirestoreHelper {
@@ -123,6 +126,85 @@ public class FirestoreHelper {
                 .addOnSuccessListener(unused -> listener.onSuccess())
                 .addOnFailureListener(error ->
                         listener.onFailure(error.getMessage()));
+    }
+
+    // Delete current Firebase user's Firestore data
+    public void deleteCurrentUserData(
+            String expectedEmail,
+            OnSyncListener listener) {
+
+        String uid = getMatchingFirebaseUid(expectedEmail);
+
+        if (uid == null) {
+            listener.onFailure(
+                    "No matching authenticated Firebase account.");
+            return;
+        }
+
+        firestore.collection("users")
+                .document(uid)
+                .collection("emergencyContacts")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+
+                    List<DocumentSnapshot> contacts =
+                            snapshot.getDocuments();
+
+                    deleteContactBatch(uid, contacts, listener);
+
+                })
+                .addOnFailureListener(error ->
+                        listener.onFailure(
+                                "Unable to load emergency contacts: "
+                                        + error.getMessage()));
+    }
+
+    // Delete contacts in batches to respect Firestore's batch limit
+    private void deleteContactBatch(
+            String uid,
+            List<DocumentSnapshot> contacts,
+            OnSyncListener listener) {
+
+        if (contacts.isEmpty()) {
+            deleteUserProfileDocument(uid, listener);
+            return;
+        }
+
+        WriteBatch batch = firestore.batch();
+
+        int batchSize = Math.min(450, contacts.size());
+
+        for (int i = 0; i < batchSize; i++) {
+            batch.delete(contacts.get(i).getReference());
+        }
+
+        batch.commit()
+                .addOnSuccessListener(unused -> {
+
+                    List<DocumentSnapshot> remaining =
+                            contacts.subList(batchSize, contacts.size());
+
+                    deleteContactBatch(uid, remaining, listener);
+                })
+                .addOnFailureListener(error ->
+                        listener.onFailure(
+                                "Unable to delete emergency contacts: "
+                                        + error.getMessage()));
+    }
+
+    // Delete parent profile only after all contacts are deleted
+    private void deleteUserProfileDocument(
+            String uid,
+            OnSyncListener listener) {
+
+        firestore.collection("users")
+                .document(uid)
+                .delete()
+                .addOnSuccessListener(unused -> listener.onSuccess())
+                .addOnFailureListener(error ->
+                        listener.onFailure(
+                                "Unable to delete Firestore profile: "
+                                        + error.getMessage()));
     }
 
     public interface OnProfileSaveListener {

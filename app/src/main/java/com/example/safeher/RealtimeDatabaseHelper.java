@@ -1,3 +1,4 @@
+
 package com.example.safeher;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -76,5 +77,35 @@ public class RealtimeDatabaseHelper {
                 .child("liveSOS")
                 .child("status")
                 .setValue("RESOLVED");
+    }
+
+    // Delete only the current authenticated user's RTDB data
+    public void deleteCurrentUserData(
+            String expectedEmail,
+            RealtimeDeleteListener listener) {
+
+        FirebaseUser user =
+                FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user == null || user.getEmail() == null) {
+            listener.onFailure("No authenticated Firebase user found.");
+            return;
+        }
+
+        if (!user.getEmail().equalsIgnoreCase(expectedEmail)) {
+            listener.onFailure("Firebase account does not match the current user.");
+            return;
+        }
+
+        databaseReference.child(user.getUid())
+                .removeValue()
+                .addOnSuccessListener(unused -> listener.onSuccess())
+                .addOnFailureListener(error ->
+                        listener.onFailure(error.getMessage()));
+    }
+
+    public interface RealtimeDeleteListener {
+        void onSuccess();
+        void onFailure(String error);
     }
 }

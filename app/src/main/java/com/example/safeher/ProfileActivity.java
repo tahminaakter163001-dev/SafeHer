@@ -1,3 +1,4 @@
+
 package com.example.safeher;
 
 import android.Manifest;
@@ -8,14 +9,21 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
+import android.text.InputType;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,6 +39,8 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView bloodGroupText;
 
     private ImageView profileImage;
+
+    private Button deleteAccountButton;
 
     private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
@@ -54,6 +64,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         Button editButton = findViewById(R.id.editProfileButton);
         Button backButton = findViewById(R.id.backButton);
+        deleteAccountButton = findViewById(R.id.deleteAccountButton);
 
         databaseHelper = new DatabaseHelper(this);
         sessionManager = new SessionManager(this);
@@ -77,6 +88,10 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         backButton.setOnClickListener(v -> finish());
+
+        deleteAccountButton.setOnClickListener(v ->
+                showDeleteConfirmation()
+        );
     }
 
     @Override
@@ -159,7 +174,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         Intent intent = new Intent(
                 Intent.ACTION_PICK,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         );
 
         intent.setType("image/*");
@@ -259,13 +274,16 @@ public class ProfileActivity extends AppCompatActivity {
             if (bitmap != null) {
                 profileImage.setImageBitmap(bitmap);
             } else {
-                profileImage.setImageResource(R.drawable.ic_launcher_foreground);
+                profileImage.setImageResource(
+                        R.drawable.ic_launcher_foreground
+                );
             }
 
         } else {
 
-            // Show default image when this user has no saved photo
-            profileImage.setImageResource(R.drawable.ic_launcher_foreground);
+            profileImage.setImageResource(
+                    R.drawable.ic_launcher_foreground
+            );
         }
     }
 
@@ -311,6 +329,350 @@ public class ProfileActivity extends AppCompatActivity {
         return value;
     }
 
+    // Show permanent deletion confirmation
+    private void showDeleteConfirmation() {
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Account?")
+                .setMessage(
+                        "Are you sure you want to permanently delete your SafeHer account?\n\n"
+                                + "Your profile, emergency contacts and saved data will be deleted. "
+                                + "This action cannot be undone."
+                )
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .setPositiveButton("Continue", (dialog, which) ->
+                        showPasswordDialog()
+                )
+                .show();
+    }
+
+    // Ask for password before deleting
+    private void showPasswordDialog() {
+
+        EditText passwordInput = new EditText(this);
+
+        passwordInput.setHint("Enter your current password");
+        passwordInput.setInputType(
+                InputType.TYPE_CLASS_TEXT
+                        | InputType.TYPE_TEXT_VARIATION_PASSWORD
+        );
+
+        int padding = (int) (20 * getResources()
+                .getDisplayMetrics().density);
+
+        passwordInput.setPadding(
+                padding, padding, padding, padding
+        );
+
+        AlertDialog passwordDialog = new AlertDialog.Builder(this)
+                .setTitle("Verify Your Identity")
+                .setMessage("Enter your password to continue.")
+                .setView(passwordInput)
+                .setNegativeButton("Cancel", (dialog, which) ->
+                        dialog.dismiss()
+                )
+                .setPositiveButton("Verify & Delete", null)
+                .create();
+
+        passwordDialog.setOnShowListener(dialog -> {
+
+            passwordDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setOnClickListener(v -> {
+
+                        String password = passwordInput.getText()
+                                .toString();
+
+                        if (password.isEmpty()) {
+
+                            passwordInput.setError(
+                                    "Password is required"
+                            );
+                            return;
+                        }
+
+                        String email = sessionManager.getUserEmail();
+
+                        if (email == null || email.trim().isEmpty()) {
+
+                            Toast.makeText(
+                                    this,
+                                    "Unable to identify your account.",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return;
+                        }
+
+                        deleteAccountButton.setEnabled(false);
+                        passwordDialog.dismiss();
+
+                        if (databaseHelper.isFirebaseAccount(email)) {
+
+                            deleteFirebaseAccount(email, password);
+
+                        } else {
+
+                            deleteLocalAccount(email, password);
+                        }
+                    });
+        });
+
+        passwordDialog.show();
+    }
+
+    // Delete a local SQLite-only account
+    private void deleteLocalAccount(
+            String email,
+            String password
+    ) {
+
+        User authenticatedUser =
+                databaseHelper.getAuthenticatedUser(email, password);
+
+        if (authenticatedUser == null) {
+
+            deleteAccountButton.setEnabled(true);
+
+            Toast.makeText(
+                    this,
+                    "Incorrect password. Account was not deleted.",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
+        stopLocationTracking();
+
+        boolean deleted =
+                databaseHelper.deleteLocalAccountByEmail(email);
+
+        if (!deleted) {
+
+            deleteAccountButton.setEnabled(true);
+
+            Toast.makeText(
+                    this,
+                    "Unable to delete local account. Please try again.",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
+        finishAccountDeletion(false);
+    }
+
+    // Re-authenticate Firebase account before permanent deletion
+    private void deleteFirebaseAccount(
+            String email,
+            String password
+    ) {
+
+        FirebaseUser firebaseUser =
+                FirebaseAuth.getInstance().getCurrentUser();
+
+        if (firebaseUser == null
+                || firebaseUser.getEmail() == null
+                || !firebaseUser.getEmail().equalsIgnoreCase(email)) {
+
+            deleteAccountButton.setEnabled(true);
+
+            Toast.makeText(
+                    this,
+                    "No matching Firebase account is signed in.",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
+        AuthCredential credential =
+                EmailAuthProvider.getCredential(email, password);
+
+        firebaseUser.reauthenticate(credential)
+                .addOnSuccessListener(unused -> {
+
+                    stopLocationTracking();
+
+                    deleteFirebaseCloudData(email, firebaseUser);
+
+                })
+                .addOnFailureListener(error -> {
+
+                    deleteAccountButton.setEnabled(true);
+
+                    Toast.makeText(
+                            this,
+                            "Password verification failed: "
+                                    + error.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show();
+                });
+    }
+
+    // Delete Firestore first, then Realtime Database
+    private void deleteFirebaseCloudData(
+            String email,
+            FirebaseUser firebaseUser
+    ) {
+
+        FirestoreHelper firestoreHelper = new FirestoreHelper();
+
+        firestoreHelper.deleteCurrentUserData(
+                email,
+                new FirestoreHelper.OnSyncListener() {
+
+                    @Override
+                    public void onSuccess() {
+
+                        RealtimeDatabaseHelper realtimeHelper =
+                                new RealtimeDatabaseHelper();
+
+                        realtimeHelper.deleteCurrentUserData(
+                                email,
+                                new RealtimeDatabaseHelper.RealtimeDeleteListener() {
+
+                                    @Override
+                                    public void onSuccess() {
+
+                                        deleteFirebaseAuthAccount(
+                                                firebaseUser
+                                        );
+                                    }
+
+                                    @Override
+                                    public void onFailure(String error) {
+
+                                        showDeletionError(
+                                                "Realtime Database deletion failed: "
+                                                        + error
+                                        );
+                                    }
+                                }
+                        );
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+
+                        showDeletionError(
+                                "Firestore deletion failed: " + error
+                        );
+                    }
+                }
+        );
+    }
+
+    // Delete Firebase Authentication account last
+    private void deleteFirebaseAuthAccount(
+            FirebaseUser firebaseUser
+    ) {
+
+        firebaseUser.delete()
+                .addOnSuccessListener(unused -> {
+
+                    String email = firebaseUser.getEmail();
+
+                    boolean localDeleted =
+                            databaseHelper.deleteLocalAccountByEmail(email);
+
+                    if (!localDeleted) {
+
+                        Toast.makeText(
+                                this,
+                                "Cloud account deleted, but local cleanup failed.",
+                                Toast.LENGTH_LONG
+                        ).show();
+
+                        cleanupSessionAndExit();
+                        return;
+                    }
+
+                    finishAccountDeletion(true);
+                })
+                .addOnFailureListener(error -> {
+
+                    showDeletionError(
+                            "Firebase account deletion failed: "
+                                    + error.getMessage()
+                    );
+                });
+    }
+
+    // Stop active foreground location tracking
+    private void stopLocationTracking() {
+
+        Intent serviceIntent = new Intent(
+                ProfileActivity.this,
+                LocationTrackingService.class
+        );
+
+        stopService(serviceIntent);
+    }
+
+    // Remove this user's local profile picture
+    private void deleteLocalProfilePicture() {
+
+        File imageFile = getProfileImageFile();
+
+        if (imageFile.exists() && !imageFile.delete()) {
+            imageFile.deleteOnExit();
+        }
+    }
+
+    // Finish local and Firebase account deletion
+    private void finishAccountDeletion(boolean firebaseAccount) {
+
+        deleteLocalProfilePicture();
+
+        if (firebaseAccount) {
+            FirebaseAuth.getInstance().signOut();
+        }
+
+        cleanupSessionAndExit();
+
+        Toast.makeText(
+                this,
+                "Your SafeHer account has been permanently deleted.",
+                Toast.LENGTH_LONG
+        ).show();
+    }
+
+    private void cleanupSessionAndExit() {
+
+        sessionManager.clearSession();
+
+        FirebaseAuth.getInstance().signOut();
+
+        Intent intent = new Intent(
+                ProfileActivity.this,
+                LoginActivity.class
+        );
+
+        intent.setFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TASK
+        );
+
+        startActivity(intent);
+        finish();
+    }
+
+    private void showDeletionError(String message) {
+
+        deleteAccountButton.setEnabled(true);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Account Deletion Failed")
+                .setMessage(
+                        message
+                                + "\n\nYour Firebase Authentication account "
+                                + "has not been deleted. You can try again."
+                )
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
     private void goToLogin() {
 
         Intent intent = new Intent(
@@ -319,8 +681,8 @@ public class ProfileActivity extends AppCompatActivity {
         );
 
         intent.setFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK |
-                        Intent.FLAG_ACTIVITY_CLEAR_TASK
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TASK
         );
 
         startActivity(intent);
