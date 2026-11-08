@@ -1,3 +1,4 @@
+
 package com.example.safeher;
 
 import android.os.Bundle;
@@ -9,13 +10,20 @@ import android.util.Patterns;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.Locale;
+
 public class EditProfileActivity extends AppCompatActivity {
 
     private EditText nameInput;
     private EditText emailInput;
 
+    private Button saveButton;
+
     private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
+    private FirestoreHelper firestoreHelper;
+
+    private int userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,20 +33,21 @@ public class EditProfileActivity extends AppCompatActivity {
         nameInput = findViewById(R.id.editNameInput);
         emailInput = findViewById(R.id.editEmailInput);
 
-        Button saveButton = findViewById(R.id.saveProfileButton);
+        saveButton = findViewById(R.id.saveProfileButton);
         Button cancelButton = findViewById(R.id.cancelEditButton);
 
         databaseHelper = new DatabaseHelper(this);
         sessionManager = new SessionManager(this);
+        firestoreHelper = new FirestoreHelper();
 
         if (!sessionManager.isLoggedIn()) {
             goToLogin();
             return;
         }
 
-        User user = databaseHelper.getUserById(
-                sessionManager.getUserId()
-        );
+        userId = sessionManager.getUserId();
+
+        User user = databaseHelper.getUserById(userId);
 
         if (user == null) {
             sessionManager.clearSession();
@@ -55,31 +64,24 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void saveProfile() {
+
         String name = nameInput.getText().toString().trim();
+
         String email = emailInput.getText().toString()
                 .trim()
-                .toLowerCase(java.util.Locale.ROOT);
+                .toLowerCase(Locale.ROOT);
 
-        if (name.isEmpty()) {
-            nameInput.setError("Name is required");
-            nameInput.requestFocus();
-            return;
-        }
-
-        if (name.length() < 2) {
+        if (name.isEmpty() || name.length() < 2) {
             nameInput.setError("Enter at least 2 characters");
             nameInput.requestFocus();
             return;
         }
 
-        if (email.isEmpty()
-                || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             emailInput.setError("Enter a valid email address");
             emailInput.requestFocus();
             return;
         }
-
-        int userId = sessionManager.getUserId();
 
         User currentUser = databaseHelper.getUserById(userId);
 
@@ -92,8 +94,9 @@ public class EditProfileActivity extends AppCompatActivity {
             return;
         }
 
-        if (email.equalsIgnoreCase(currentUser.getEmail())
-                && name.equals(currentUser.getFullName())) {
+        if (name.equals(currentUser.getFullName())
+                && email.equalsIgnoreCase(currentUser.getEmail())) {
+
             Toast.makeText(this,
                     "No changes to save",
                     Toast.LENGTH_SHORT).show();
@@ -102,31 +105,77 @@ public class EditProfileActivity extends AppCompatActivity {
 
         if (!email.equalsIgnoreCase(currentUser.getEmail())
                 && databaseHelper.emailExists(email)) {
+
             emailInput.setError("This email is already registered");
             emailInput.requestFocus();
             return;
         }
 
-        boolean updated = databaseHelper.updateUserProfile(
-                userId, name, email
+        saveButton.setEnabled(false);
+        saveButton.setText("Saving...");
+
+        firestoreHelper.updateUserProfile(
+                name,
+                email,
+                new FirestoreHelper.OnProfileSaveListener() {
+
+                    @Override
+                    public void onSuccess() {
+
+                        if (isFinishing() || isDestroyed()) return;
+
+                        boolean updated =
+                                databaseHelper.updateUserProfile(
+                                        userId, name, email
+                                );
+
+                        if (updated) {
+
+                            sessionManager.saveUser(
+                                    userId, name, email
+                            );
+
+                            Toast.makeText(
+                                    EditProfileActivity.this,
+                                    "Profile updated successfully!",
+                                    Toast.LENGTH_LONG
+                            ).show();
+
+                            finish();
+
+                        } else {
+
+                            saveButton.setEnabled(true);
+                            saveButton.setText("Save Changes");
+
+                            Toast.makeText(
+                                    EditProfileActivity.this,
+                                    "Cloud updated, but local profile update failed.",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+
+                        if (isFinishing() || isDestroyed()) return;
+
+                        saveButton.setEnabled(true);
+                        saveButton.setText("Save Changes");
+
+                        Toast.makeText(
+                                EditProfileActivity.this,
+                                error,
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                }
         );
-
-        if (updated) {
-            sessionManager.saveUser(userId, name, email);
-
-            Toast.makeText(this,
-                    "Profile updated successfully",
-                    Toast.LENGTH_SHORT).show();
-
-            finish();
-        } else {
-            Toast.makeText(this,
-                    "Could not update profile. Please try again.",
-                    Toast.LENGTH_LONG).show();
-        }
     }
 
     private void goToLogin() {
+
         Intent intent = new Intent(
                 EditProfileActivity.this,
                 LoginActivity.class

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<safetyTips>
+
+    <tip>
+        <title>Stay Aware</title>
+        <description>Pay attention to your surroundings, especially in unfamiliar places.</description>
+    </tip>
+
+    <tip>
+        <title>Share Your Plans</title>
+        <description>Let someone you trust know your destination and expected arrival time.</description>
+    </tip>
+
+    <tip>
+        <title>Keep Your Phone Ready</title>
+        <description>Keep your phone charged and important emergency contacts accessible.</description>
+    </tip>
+
+    <tip>
+        <title>Choose Safe Routes</title>
+        <description>Use familiar, well-lit routes and trusted transport whenever possible.</description>
+    </tip>
+
+    <tip>
+        <title>Trust Your Instincts</title>
+        <description>If a situation feels unsafe, move toward a safer place and seek help.</description>
+    </tip>
+
+    <tip>
+        <title>Emergency Contacts</title>
+        <description>Save important emergency phone numbers on your phone.</description>
+    </tip>
+
+    <tip>
+        <title>Protect Personal Information</title>
+        <description>Avoid sharing your live location with unknown people.</description>
+    </tip>
+
+    <tip>
+        <title>Stay Connected</title>
+        <description>Keep a trusted person informed when travelling alone.</description>
+    </tip>
+
+    <tip>
+        <title>Use Trusted Transport</title>
+        <description>Choose reliable transport and check your route before leaving.</description>
+    </tip>
+
+    <tip>
+        <title>Ask for Help</title>
+        <description>Move to a safe public place and contact someone you trust if needed.</description>
+    </tip>
+
+</safetyTips>

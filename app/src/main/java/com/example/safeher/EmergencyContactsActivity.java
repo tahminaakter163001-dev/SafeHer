@@ -1,15 +1,21 @@
+
 package com.example.safeher;
 
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.AlertDialog;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -29,6 +35,18 @@ public class EmergencyContactsActivity extends AppCompatActivity {
     private TextView emptyText;
     private int currentUserId;
 
+    private ActivityResultLauncher<Intent> contactPickerLauncher;
+
+    private static class PhoneContact {
+        String name;
+        String phone;
+
+        PhoneContact(String name, String phone) {
+            this.name = name;
+            this.phone = phone;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,6 +63,25 @@ public class EmergencyContactsActivity extends AppCompatActivity {
 
         currentUserId = sessionManager.getUserId();
 
+        // Initialize Android Contact Picker
+        contactPickerLauncher =
+                registerForActivityResult(
+                        new ActivityResultContracts.StartActivityForResult(),
+                        result -> {
+
+                            if (result.getResultCode() == RESULT_OK
+                                    && result.getData() != null) {
+
+                                Uri contactUri =
+                                        result.getData().getData();
+
+                                if (contactUri != null) {
+                                    readSelectedContact(contactUri);
+                                }
+                            }
+                        }
+                );
+
         recyclerView = findViewById(
                 R.id.emergencyContactsRecyclerView);
 
@@ -52,6 +89,9 @@ public class EmergencyContactsActivity extends AppCompatActivity {
 
         Button addButton = findViewById(
                 R.id.addEmergencyContactButton);
+
+        Button importButton = findViewById(
+                R.id.importPhoneContactsButton);
 
         recyclerView.setLayoutManager(
                 new LinearLayoutManager(this));
@@ -79,6 +119,9 @@ public class EmergencyContactsActivity extends AppCompatActivity {
         addButton.setOnClickListener(
                 v -> showContactDialog(null));
 
+        importButton.setOnClickListener(
+                v -> openPhoneContactPicker());
+
         loadContacts();
     }
 
@@ -90,6 +133,142 @@ public class EmergencyContactsActivity extends AppCompatActivity {
                 && sessionManager.isLoggedIn()
                 && adapter != null) {
             loadContacts();
+        }
+    }
+
+    // Open the phone's Contacts picker
+    private void openPhoneContactPicker() {
+
+        Intent intent = new Intent(
+                Intent.ACTION_PICK,
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+        );
+
+        contactPickerLauncher.launch(intent);
+    }
+
+    // Read only the selected contact
+    private void readSelectedContact(Uri contactUri) {
+
+        String name = null;
+        String phone = null;
+
+        String[] projection = {
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+        };
+
+        try (Cursor cursor = getContentResolver().query(
+                contactUri,
+                projection,
+                null,
+                null,
+                null
+        )) {
+
+            if (cursor != null && cursor.moveToFirst()) {
+
+                name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
+                        )
+                );
+
+                phone = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                ContactsContract.CommonDataKinds.Phone.NUMBER
+                        )
+                );
+            }
+
+        } catch (Exception e) {
+
+            Toast.makeText(
+                    this,
+                    "Could not read selected contact.",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        if (name == null || phone == null
+                || name.trim().isEmpty()
+                || phone.trim().isEmpty()) {
+
+            Toast.makeText(
+                    this,
+                    "Contact information unavailable.",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        PhoneContact selected = new PhoneContact(
+                name.trim(),
+                phone.trim()
+        );
+
+        new AlertDialog.Builder(this)
+                .setTitle("Add Emergency Contact?")
+                .setMessage(
+                        "Name: " + selected.name
+                                + "\nPhone: " + selected.phone
+                )
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Add", (dialog, which) -> {
+
+                    if (!isValidPhone(selected.phone)) {
+
+                        Toast.makeText(
+                                this,
+                                "Invalid phone number. Please add manually.",
+                                Toast.LENGTH_LONG
+                        ).show();
+
+                        return;
+                    }
+
+                    saveImportedContact(selected);
+                })
+                .show();
+    }
+
+    // Save imported contact to SQLite
+    private void saveImportedContact(PhoneContact contact) {
+
+        long newId = databaseHelper.addEmergencyContact(
+                currentUserId,
+                contact.name,
+                contact.phone
+        );
+
+        if (newId > 0 && newId <= Integer.MAX_VALUE) {
+
+            EmergencyContact saved = new EmergencyContact(
+                    (int) newId,
+                    currentUserId,
+                    contact.name,
+                    contact.phone
+            );
+
+            loadContacts();
+            syncContactToCloud(saved);
+
+            Toast.makeText(
+                    this,
+                    "Contact imported successfully!",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+        } else {
+
+            Toast.makeText(
+                    this,
+                    "Could not import contact. Please try again.",
+                    Toast.LENGTH_LONG
+            ).show();
         }
     }
 
@@ -114,8 +293,7 @@ public class EmergencyContactsActivity extends AppCompatActivity {
     }
 
     // Add or edit emergency contact
-    private void showContactDialog(
-            EmergencyContact existingContact) {
+    private void showContactDialog(EmergencyContact existingContact) {
 
         boolean isEditing = existingContact != null;
 
@@ -137,8 +315,7 @@ public class EmergencyContactsActivity extends AppCompatActivity {
         int padding = (int) (20 * getResources()
                 .getDisplayMetrics().density);
 
-        layout.setPadding(
-                padding, padding / 2, padding, 0);
+        layout.setPadding(padding, padding / 2, padding, 0);
 
         layout.addView(nameInput);
         layout.addView(phoneInput);
@@ -154,8 +331,7 @@ public class EmergencyContactsActivity extends AppCompatActivity {
                         : "Add Emergency Contact")
                 .setView(layout)
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton(
-                        isEditing ? "Save" : "Add", null)
+                .setPositiveButton(isEditing ? "Save" : "Add", null)
                 .create();
 
         dialog.setOnShowListener(ignored -> {
@@ -188,13 +364,12 @@ public class EmergencyContactsActivity extends AppCompatActivity {
 
                         if (isEditing) {
 
-                            success =
-                                    databaseHelper.updateEmergencyContact(
-                                            existingContact.getId(),
-                                            currentUserId,
-                                            name,
-                                            phone
-                                    );
+                            success = databaseHelper.updateEmergencyContact(
+                                    existingContact.getId(),
+                                    currentUserId,
+                                    name,
+                                    phone
+                            );
 
                             updatedContact = new EmergencyContact(
                                     existingContact.getId(),
@@ -212,35 +387,31 @@ public class EmergencyContactsActivity extends AppCompatActivity {
                                             phone
                                     );
 
-                            success = newContactId > 0;
+                            success = newContactId > 0
+                                    && newContactId <= Integer.MAX_VALUE;
 
-                            if (success && newContactId <= Integer.MAX_VALUE) {
-
-                                updatedContact = new EmergencyContact(
-                                        (int) newContactId,
-                                        currentUserId,
-                                        name,
-                                        phone
-                                );
-
-                            } else {
-                                updatedContact = null;
-                                success = false;
-                            }
+                            updatedContact = success
+                                    ? new EmergencyContact(
+                                    (int) newContactId,
+                                    currentUserId,
+                                    name,
+                                    phone)
+                                    : null;
                         }
 
                         if (success) {
 
                             loadContacts();
                             dialog.dismiss();
-
                             syncContactToCloud(updatedContact);
 
                         } else {
 
-                            Toast.makeText(this,
+                            Toast.makeText(
+                                    this,
                                     "Could not save contact. Please try again.",
-                                    Toast.LENGTH_LONG).show();
+                                    Toast.LENGTH_LONG
+                            ).show();
                         }
                     });
         });
@@ -248,9 +419,8 @@ public class EmergencyContactsActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    // Sync added or updated contact
-    private void syncContactToCloud(
-            EmergencyContact contact) {
+    // Sync contact to Firestore
+    private void syncContactToCloud(EmergencyContact contact) {
 
         String email = sessionManager.getUserEmail();
 
@@ -302,8 +472,7 @@ public class EmergencyContactsActivity extends AppCompatActivity {
     // Phone validation
     private boolean isValidPhone(String phone) {
 
-        String normalized =
-                phone.replaceAll("[\\s()-]", "");
+        String normalized = phone.replaceAll("[\\s()-]", "");
 
         return normalized.matches("\\+?[0-9]{7,15}");
     }
@@ -376,9 +545,11 @@ public class EmergencyContactsActivity extends AppCompatActivity {
 
                     } else {
 
-                        Toast.makeText(this,
+                        Toast.makeText(
+                                this,
                                 "Could not delete contact",
-                                Toast.LENGTH_SHORT).show();
+                                Toast.LENGTH_SHORT
+                        ).show();
                     }
                 })
                 .show();

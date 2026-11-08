@@ -2,6 +2,8 @@
 package com.example.safeher;
 
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.Context;
 import android.os.Bundle;
 import android.widget.Button;
 
@@ -11,12 +13,18 @@ public class DashboardActivity extends AppCompatActivity {
 
     private SessionManager sessionManager;
 
+    private SystemEventReceiver systemEventReceiver;
+    private boolean receiverRegistered = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
         sessionManager = new SessionManager(this);
+
+        // Initialize System Event Receiver
+        systemEventReceiver = new SystemEventReceiver();
 
         Button sosButton = findViewById(R.id.sosButton);
         Button safetyTipsButton = findViewById(R.id.safetyTipsButton);
@@ -84,5 +92,36 @@ public class DashboardActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(
+                    systemEventReceiver,
+                    filter,
+                    Context.RECEIVER_EXPORTED
+            );
+        } else {
+            registerReceiver(systemEventReceiver, filter);
+        }
+
+        receiverRegistered = true;
+    }
+
+    @Override
+    protected void onStop() {
+        if (receiverRegistered) {
+            unregisterReceiver(systemEventReceiver);
+            receiverRegistered = false;
+        }
+
+        super.onStop();
     }
 }

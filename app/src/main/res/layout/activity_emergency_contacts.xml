@@ -35,11 +35,23 @@
         android:id="@+id/addEmergencyContactButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="20dp"
         android:backgroundTint="#D63384"
         android:text="+ Add Emergency Contact"
         android:textColor="#FFFFFF"
         app:layout_constraintTop_toBottomOf="@id/emergencyContactsSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/importPhoneContactsButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="#8E3155"
+        android:text="Import from Phone Contacts"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/addEmergencyContactButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -53,7 +65,7 @@
         android:textColor="#756875"
         android:textSize="16sp"
         android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@id/addEmergencyContactButton"
+        app:layout_constraintTop_toBottomOf="@id/importPhoneContactsButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -64,7 +76,7 @@
         android:layout_marginTop="16dp"
         android:clipToPadding="false"
         android:paddingBottom="12dp"
-        app:layout_constraintTop_toBottomOf="@id/addEmergencyContactButton"
+        app:layout_constraintTop_toBottomOf="@id/importPhoneContactsButton"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

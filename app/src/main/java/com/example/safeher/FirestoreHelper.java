@@ -5,6 +5,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -127,5 +128,57 @@ public class FirestoreHelper {
     public interface OnSyncListener {
         void onSuccess();
         void onFailure(String error);
+    }
+    // Update user profile in Firestore
+    public void updateUserProfile(
+            String name,
+            String email,
+            OnProfileSaveListener listener) {
+
+        FirebaseUser firebaseUser =
+                FirebaseAuth.getInstance().getCurrentUser();
+
+        if (firebaseUser == null) {
+            listener.onFailure("No authenticated Firebase user found.");
+            return;
+        }
+
+        // Update Firebase Authentication email if changed
+        Runnable saveToFirestore = () -> {
+
+            String uid = firebaseUser.getUid();
+
+            Map<String, Object> profile = new HashMap<>();
+            profile.put("uid", uid);
+            profile.put("name", name);
+            profile.put("email", email);
+            profile.put("updatedAt", FieldValue.serverTimestamp());
+
+            firestore.collection("users")
+                    .document(uid)
+                    .set(profile, SetOptions.merge())
+                    .addOnSuccessListener(unused -> listener.onSuccess())
+                    .addOnFailureListener(error ->
+                            listener.onFailure(
+                                    "Firestore error: " + error.getMessage()
+                            ));
+        };
+
+        String currentEmail = firebaseUser.getEmail();
+
+        if (currentEmail != null &&
+                currentEmail.equalsIgnoreCase(email)) {
+
+            saveToFirestore.run();
+
+        } else {
+
+            firebaseUser.updateEmail(email)
+                    .addOnSuccessListener(unused -> saveToFirestore.run())
+                    .addOnFailureListener(error ->
+                            listener.onFailure(
+                                    "Email update failed: " + error.getMessage()
+                            ));
+        }
     }
 }
