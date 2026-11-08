@@ -1,19 +1,21 @@
 
 package com.example.safeher;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
-import com.google.firebase.auth.FirebaseAuth;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 public class DashboardActivity extends AppCompatActivity {
 
     private SessionManager sessionManager;
-
     private SystemEventReceiver systemEventReceiver;
     private boolean receiverRegistered = false;
 
@@ -23,8 +25,6 @@ public class DashboardActivity extends AppCompatActivity {
         setContentView(R.layout.activity_dashboard);
 
         sessionManager = new SessionManager(this);
-
-        // Initialize System Event Receiver
         systemEventReceiver = new SystemEventReceiver();
 
         Button sosButton = findViewById(R.id.sosButton);
@@ -33,60 +33,56 @@ public class DashboardActivity extends AppCompatActivity {
         Button logoutButton = findViewById(R.id.logoutButton);
         Button emergencyContactsButton =
                 findViewById(R.id.emergencyContactsButton);
-
         Button nearbyServicesButton =
                 findViewById(R.id.nearbyServicesButton);
+        Button callEmergencyButton =
+                findViewById(R.id.callEmergencyButton);
+        Button emergencyNumbersButton =
+                findViewById(R.id.emergencyNumbersButton);
 
-        sosButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    DashboardActivity.this,
-                    EmergencySOSActivity.class
+        sosButton.setOnClickListener(v ->
+                startActivity(new Intent(this, EmergencySOSActivity.class)));
+
+        safetyTipsButton.setOnClickListener(v ->
+                startActivity(new Intent(this, SafetyTipsActivity.class)));
+
+        profileButton.setOnClickListener(v ->
+                startActivity(new Intent(this, ProfileActivity.class)));
+
+        emergencyContactsButton.setOnClickListener(v ->
+                startActivity(new Intent(this, EmergencyContactsActivity.class)));
+
+        nearbyServicesButton.setOnClickListener(v ->
+                startActivity(new Intent(this, EmergencyPlacesActivity.class)));
+
+        // Open phone dialer with Bangladesh National Emergency number.
+        callEmergencyButton.setOnClickListener(v -> {
+            Intent dialIntent = new Intent(
+                    Intent.ACTION_DIAL,
+                    Uri.parse("tel:999")
             );
-            startActivity(intent);
+
+            try {
+                startActivity(dialIntent);
+            } catch (Exception e) {
+                Toast.makeText(
+                        this,
+                        "Unable to open phone dialer.",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
         });
 
-        safetyTipsButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    DashboardActivity.this,
-                    SafetyTipsActivity.class
-            );
-            startActivity(intent);
-        });
-
-        profileButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    DashboardActivity.this,
-                    ProfileActivity.class
-            );
-            startActivity(intent);
-        });
-
-        emergencyContactsButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    DashboardActivity.this,
-                    EmergencyContactsActivity.class
-            );
-            startActivity(intent);
-        });
-
-        nearbyServicesButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    DashboardActivity.this,
-                    EmergencyPlacesActivity.class
-            );
-            startActivity(intent);
-        });
-
+        emergencyNumbersButton.setOnClickListener(v ->
+                startActivity(new Intent(
+                        this,
+                        EmergencyNumbersActivity.class
+                )));
 
         logoutButton.setOnClickListener(v -> {
-
-            // Sign out from Firebase Authentication
             FirebaseAuth.getInstance().signOut();
-
-            // Clear local session
             sessionManager.clearSession();
 
-            // Navigate to Login screen
             Intent intent = new Intent(
                     DashboardActivity.this,
                     LoginActivity.class
@@ -100,7 +96,6 @@ public class DashboardActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
-
     }
 
     @Override

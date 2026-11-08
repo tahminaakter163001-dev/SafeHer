@@ -78,6 +78,9 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <activity
+            android:name=".EmergencyNumbersActivity"
+            android:exported="false" />
 
     </application>
 

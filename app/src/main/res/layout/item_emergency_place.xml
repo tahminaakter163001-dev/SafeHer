@@ -43,6 +43,18 @@
             android:textColor="#666666"
             android:textSize="14sp"/>
 
+        <Button
+            android:id="@+id/directionsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Get Directions"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:backgroundTint="#8E3155"
+            android:drawablePadding="8dp"/>
+
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>
