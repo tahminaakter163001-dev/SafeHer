@@ -2,20 +2,26 @@
 package com.example.safeher;
 
 import android.os.Bundle;
+import android.content.Intent;
+import android.util.Patterns;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-import android.content.Intent;
-import android.util.Patterns;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 public class EditProfileActivity extends AppCompatActivity {
 
     private EditText nameInput;
     private EditText emailInput;
+    private EditText phoneInput;
+    private EditText addressInput;
+    private EditText dobInput;
+    private EditText bloodGroupInput;
 
     private Button saveButton;
 
@@ -32,6 +38,10 @@ public class EditProfileActivity extends AppCompatActivity {
 
         nameInput = findViewById(R.id.editNameInput);
         emailInput = findViewById(R.id.editEmailInput);
+        phoneInput = findViewById(R.id.editPhoneInput);
+        addressInput = findViewById(R.id.editAddressInput);
+        dobInput = findViewById(R.id.editDobInput);
+        bloodGroupInput = findViewById(R.id.editBloodGroupInput);
 
         saveButton = findViewById(R.id.saveProfileButton);
         Button cancelButton = findViewById(R.id.cancelEditButton);
@@ -55,8 +65,13 @@ public class EditProfileActivity extends AppCompatActivity {
             return;
         }
 
+        // Load existing profile information
         nameInput.setText(user.getFullName());
         emailInput.setText(user.getEmail());
+        phoneInput.setText(user.getPhoneNumber());
+        addressInput.setText(user.getAddress());
+        dobInput.setText(user.getDateOfBirth());
+        bloodGroupInput.setText(user.getBloodGroup());
 
         saveButton.setOnClickListener(v -> saveProfile());
 
@@ -71,15 +86,58 @@ public class EditProfileActivity extends AppCompatActivity {
                 .trim()
                 .toLowerCase(Locale.ROOT);
 
+        String phone = phoneInput.getText().toString().trim();
+
+        String address = addressInput.getText().toString().trim();
+
+        String dob = dobInput.getText().toString().trim();
+
+        String bloodGroup = bloodGroupInput.getText().toString()
+                .trim()
+                .toUpperCase(Locale.ROOT);
+
+        // Validate name
         if (name.isEmpty() || name.length() < 2) {
             nameInput.setError("Enter at least 2 characters");
             nameInput.requestFocus();
             return;
         }
 
+        // Validate email
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             emailInput.setError("Enter a valid email address");
             emailInput.requestFocus();
+            return;
+        }
+
+        // Validate phone number if provided
+        if (!phone.isEmpty()) {
+
+            String cleanPhone = phone.replaceAll("[\\s()-]", "");
+
+            if (!cleanPhone.matches("\\+?[0-9]{7,15}")) {
+                phoneInput.setError("Enter a valid phone number");
+                phoneInput.requestFocus();
+                return;
+            }
+        }
+
+        // Validate date of birth if provided
+        if (!dob.isEmpty() && !isValidDate(dob)) {
+            dobInput.setError("Use date format YYYY-MM-DD");
+            dobInput.requestFocus();
+            return;
+        }
+
+        // Validate blood group if provided
+        if (!bloodGroup.isEmpty() &&
+                !bloodGroup.matches("^(A|B|AB|O)[+-]$")) {
+
+            bloodGroupInput.setError(
+                    "Use A+, A-, B+, B-, AB+, AB-, O+ or O-"
+            );
+
+            bloodGroupInput.requestFocus();
             return;
         }
 
@@ -89,22 +147,31 @@ public class EditProfileActivity extends AppCompatActivity {
             Toast.makeText(this,
                     "Account not found. Please log in again.",
                     Toast.LENGTH_LONG).show();
+
             sessionManager.clearSession();
             goToLogin();
             return;
         }
 
-        if (name.equals(currentUser.getFullName())
-                && email.equalsIgnoreCase(currentUser.getEmail())) {
+        // Check whether anything changed
+        boolean noChanges =
+                name.equals(currentUser.getFullName()) &&
+                        email.equalsIgnoreCase(currentUser.getEmail()) &&
+                        phone.equals(currentUser.getPhoneNumber()) &&
+                        address.equals(currentUser.getAddress()) &&
+                        dob.equals(currentUser.getDateOfBirth()) &&
+                        bloodGroup.equalsIgnoreCase(currentUser.getBloodGroup());
 
+        if (noChanges) {
             Toast.makeText(this,
                     "No changes to save",
                     Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (!email.equalsIgnoreCase(currentUser.getEmail())
-                && databaseHelper.emailExists(email)) {
+        // Check duplicate email
+        if (!email.equalsIgnoreCase(currentUser.getEmail()) &&
+                databaseHelper.emailExists(email)) {
 
             emailInput.setError("This email is already registered");
             emailInput.requestFocus();
@@ -117,6 +184,10 @@ public class EditProfileActivity extends AppCompatActivity {
         firestoreHelper.updateUserProfile(
                 name,
                 email,
+                phone,
+                address,
+                dob,
+                bloodGroup,
                 new FirestoreHelper.OnProfileSaveListener() {
 
                     @Override
@@ -126,7 +197,13 @@ public class EditProfileActivity extends AppCompatActivity {
 
                         boolean updated =
                                 databaseHelper.updateUserProfile(
-                                        userId, name, email
+                                        userId,
+                                        name,
+                                        email,
+                                        phone,
+                                        address,
+                                        dob,
+                                        bloodGroup
                                 );
 
                         if (updated) {
@@ -174,6 +251,22 @@ public class EditProfileActivity extends AppCompatActivity {
         );
     }
 
+    private boolean isValidDate(String date) {
+
+        SimpleDateFormat format =
+                new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+
+        format.setLenient(false);
+
+        try {
+            format.parse(date);
+            return true;
+
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+
     private void goToLogin() {
 
         Intent intent = new Intent(
@@ -182,8 +275,8 @@ public class EditProfileActivity extends AppCompatActivity {
         );
 
         intent.setFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_CLEAR_TASK
+                Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK
         );
 
         startActivity(intent);

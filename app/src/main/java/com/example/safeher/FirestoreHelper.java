@@ -1,3 +1,4 @@
+
 package com.example.safeher;
 
 import com.google.firebase.Timestamp;
@@ -18,7 +19,7 @@ public class FirestoreHelper {
         firestore = FirebaseFirestore.getInstance();
     }
 
-    // Save user profile
+    // Save new user profile
     public void saveUserProfile(
             String name,
             String email,
@@ -38,6 +39,10 @@ public class FirestoreHelper {
         userProfile.put("uid", uid);
         userProfile.put("name", name);
         userProfile.put("email", email);
+        userProfile.put("phoneNumber", "");
+        userProfile.put("address", "");
+        userProfile.put("dateOfBirth", "");
+        userProfile.put("bloodGroup", "");
         userProfile.put("createdAt", Timestamp.now());
 
         firestore.collection("users")
@@ -129,10 +134,15 @@ public class FirestoreHelper {
         void onSuccess();
         void onFailure(String error);
     }
-    // Update user profile in Firestore
+
+    // Update complete user profile
     public void updateUserProfile(
             String name,
             String email,
+            String phone,
+            String address,
+            String dob,
+            String bloodGroup,
             OnProfileSaveListener listener) {
 
         FirebaseUser firebaseUser =
@@ -143,15 +153,19 @@ public class FirestoreHelper {
             return;
         }
 
-        // Update Firebase Authentication email if changed
         Runnable saveToFirestore = () -> {
 
             String uid = firebaseUser.getUid();
 
             Map<String, Object> profile = new HashMap<>();
+
             profile.put("uid", uid);
             profile.put("name", name);
             profile.put("email", email);
+            profile.put("phoneNumber", phone);
+            profile.put("address", address);
+            profile.put("dateOfBirth", dob);
+            profile.put("bloodGroup", bloodGroup);
             profile.put("updatedAt", FieldValue.serverTimestamp());
 
             firestore.collection("users")
@@ -174,11 +188,23 @@ public class FirestoreHelper {
         } else {
 
             firebaseUser.updateEmail(email)
-                    .addOnSuccessListener(unused -> saveToFirestore.run())
+                    .addOnSuccessListener(unused ->
+                            saveToFirestore.run())
                     .addOnFailureListener(error ->
                             listener.onFailure(
                                     "Email update failed: " + error.getMessage()
                             ));
         }
+    }
+
+    // Backward-compatible method for existing callers
+    public void updateUserProfile(
+            String name,
+            String email,
+            OnProfileSaveListener listener) {
+
+        updateUserProfile(
+                name, email, "", "", "", "", listener
+        );
     }
 }

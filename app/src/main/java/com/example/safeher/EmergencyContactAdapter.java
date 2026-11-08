@@ -1,3 +1,4 @@
+
 package com.example.safeher;
 
 import android.view.LayoutInflater;
@@ -25,6 +26,7 @@ public class EmergencyContactAdapter
     public EmergencyContactAdapter(
             ArrayList<EmergencyContact> contacts,
             ContactActionListener listener) {
+
         this.contacts = contacts;
         this.listener = listener;
     }
@@ -32,7 +34,8 @@ public class EmergencyContactAdapter
     @NonNull
     @Override
     public ContactViewHolder onCreateViewHolder(
-            @NonNull ViewGroup parent, int viewType) {
+            @NonNull ViewGroup parent,
+            int viewType) {
 
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_emergency_contact, parent, false);
@@ -42,7 +45,8 @@ public class EmergencyContactAdapter
 
     @Override
     public void onBindViewHolder(
-            @NonNull ContactViewHolder holder, int position) {
+            @NonNull ContactViewHolder holder,
+            int position) {
 
         EmergencyContact contact = contacts.get(position);
 
@@ -50,10 +54,12 @@ public class EmergencyContactAdapter
         holder.phoneText.setText(contact.getPhoneNumber());
 
         holder.editButton.setOnClickListener(
-                v -> listener.onEdit(contact));
+                v -> listener.onEdit(contact)
+        );
 
         holder.deleteButton.setOnClickListener(
-                v -> listener.onDelete(contact));
+                v -> listener.onDelete(contact)
+        );
     }
 
     @Override
@@ -62,6 +68,7 @@ public class EmergencyContactAdapter
     }
 
     static class ContactViewHolder extends RecyclerView.ViewHolder {
+
         TextView nameText;
         TextView phoneText;
         Button editButton;

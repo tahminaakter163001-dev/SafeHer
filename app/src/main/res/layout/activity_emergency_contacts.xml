@@ -5,15 +5,18 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFF7FA"
-    android:padding="20dp">
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="22dp"
+    android:paddingBottom="12dp">
 
     <TextView
         android:id="@+id/emergencyContactsTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Emergency Contacts"
-        android:textColor="#29202A"
-        android:textSize="26sp"
+        android:text="Trusted Contacts"
+        android:textColor="#8E3155"
+        android:textSize="27sp"
         android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -23,35 +26,102 @@
         android:id="@+id/emergencyContactsSubtitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Add people you trust to contact in an emergency."
-        android:textColor="#756875"
-        android:textSize="15sp"
+        android:layout_marginTop="7dp"
+        android:text="Your trusted people, always within reach. Add the people who can support you in an emergency."
+        android:textColor="#725665"
+        android:textSize="14sp"
+        android:lineSpacingExtra="3dp"
         app:layout_constraintTop_toBottomOf="@id/emergencyContactsTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <Button
-        android:id="@+id/addEmergencyContactButton"
+    <androidx.cardview.widget.CardView
+        android:id="@+id/contactInfoCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:backgroundTint="#D63384"
-        android:text="+ Add Emergency Contact"
-        android:textColor="#FFFFFF"
+        app:cardBackgroundColor="#FCE7F3"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
         app:layout_constraintTop_toBottomOf="@id/emergencyContactsSubtitle"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <Button
-        android:id="@+id/importPhoneContactsButton"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Your safety network"
+                android:textColor="#8E3155"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Keep your emergency contacts updated so you can reach the right people when you need help."
+                android:textColor="#725665"
+                android:textSize="13sp"
+                android:lineSpacingExtra="3dp" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <LinearLayout
+        android:id="@+id/contactActionButtons"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:backgroundTint="#8E3155"
-        android:text="Import from Phone Contacts"
-        android:textColor="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/addEmergencyContactButton"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/contactInfoCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/addEmergencyContactButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:backgroundTint="#8E3155"
+            android:text="+ Add Contact"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textAllCaps="false"
+            app:cornerRadius="12dp" />
+
+        <Button
+            android:id="@+id/importPhoneContactsButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:backgroundTint="#D63384"
+            android:text="Import Contacts"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textAllCaps="false"
+            app:cornerRadius="12dp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/contactsSectionTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:text="Saved emergency contacts"
+        android:textColor="#33232B"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/contactActionButtons"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -59,13 +129,17 @@
         android:id="@+id/emptyContactsText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="20dp"
+        android:background="#FFFFFF"
         android:gravity="center"
-        android:text="No emergency contacts yet.\nAdd someone you trust."
-        android:textColor="#756875"
-        android:textSize="16sp"
+        android:padding="25dp"
+        android:text="♡\n\nNo trusted contacts yet.\nAdd someone you trust to build your safety network."
+        android:textColor="#725665"
+        android:textSize="15sp"
+        android:lineSpacingExtra="5dp"
         android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@id/importPhoneContactsButton"
+        app:layout_constraintTop_toBottomOf="@id/contactsSectionTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -73,10 +147,10 @@
         android:id="@+id/emergencyContactsRecyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="14dp"
         android:clipToPadding="false"
-        android:paddingBottom="12dp"
-        app:layout_constraintTop_toBottomOf="@id/importPhoneContactsButton"
+        android:paddingBottom="10dp"
+        app:layout_constraintTop_toBottomOf="@id/contactsSectionTitle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

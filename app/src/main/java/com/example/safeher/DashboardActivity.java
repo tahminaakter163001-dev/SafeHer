@@ -6,6 +6,7 @@ import android.content.IntentFilter;
 import android.content.Context;
 import android.os.Bundle;
 import android.widget.Button;
+import com.google.firebase.auth.FirebaseAuth;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -76,9 +77,16 @@ public class DashboardActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+
         logoutButton.setOnClickListener(v -> {
+
+            // Sign out from Firebase Authentication
+            FirebaseAuth.getInstance().signOut();
+
+            // Clear local session
             sessionManager.clearSession();
 
+            // Navigate to Login screen
             Intent intent = new Intent(
                     DashboardActivity.this,
                     LoginActivity.class
@@ -92,6 +100,7 @@ public class DashboardActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
+
     }
 
     @Override

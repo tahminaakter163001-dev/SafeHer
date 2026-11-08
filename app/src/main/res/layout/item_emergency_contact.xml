@@ -4,54 +4,127 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
+    android:layout_marginBottom="14dp"
     app:cardBackgroundColor="#FFFFFF"
-    app:cardCornerRadius="16dp"
+    app:cardCornerRadius="18dp"
     app:cardElevation="3dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="17dp">
 
-        <TextView
-            android:id="@+id/contactNameText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Contact Name"
-            android:textColor="#29202A"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/contactPhoneText"
+            <TextView
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:background="#FCE7F3"
+                android:gravity="center"
+                android:text="♥"
+                android:textColor="#8E3155"
+                android:textSize="24sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="13dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TRUSTED CONTACT"
+                    android:textColor="#A66A84"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/contactNameText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="Contact Name"
+                    android:textColor="#33232B"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    android:maxLines="2" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="Phone number"
-            android:textColor="#756875"
-            android:textSize="15sp" />
+            android:layout_marginTop="15dp"
+            android:background="#FFF7FA"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☎"
+                android:textColor="#8E3155"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/contactPhoneText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:text="Phone number"
+                android:textColor="#725665"
+                android:textSize="14sp"
+                android:textIsSelectable="true" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="15dp"
+            android:background="#F1E5EB" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:gravity="end"
+            android:gravity="end|center_vertical"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/editContactButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Edit" />
+                android:layout_height="42dp"
+                android:backgroundTint="#FCE7F3"
+                android:text="Edit"
+                android:textAllCaps="false"
+                android:textColor="#8E3155"
+                android:textSize="13sp"
+                app:cornerRadius="10dp" />
 
             <Button
                 android:id="@+id/deleteContactButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Delete" />
+                android:layout_height="42dp"
+                android:layout_marginStart="10dp"
+                android:backgroundTint="#FDECEC"
+                android:text="Delete"
+                android:textAllCaps="false"
+                android:textColor="#C62828"
+                android:textSize="13sp"
+                app:cornerRadius="10dp" />
 
         </LinearLayout>
 

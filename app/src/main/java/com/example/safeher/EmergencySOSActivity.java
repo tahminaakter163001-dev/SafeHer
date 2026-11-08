@@ -1,33 +1,29 @@
 
 package com.example.safeher;
 
+import android.Manifest;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Looper;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.content.Intent;
-import android.net.Uri;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
-
-import java.util.ArrayList;
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.os.Looper;
-
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.Priority;
-import androidx.activity.OnBackPressedCallback;
+
+import java.util.ArrayList;
 
 public class EmergencySOSActivity extends AppCompatActivity {
 
@@ -35,16 +31,25 @@ public class EmergencySOSActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private LinearLayout contactsContainer;
 
+    private TextView statusText;
+    private TextView messagePreview;
+    private Button sendSOSButton;
+
+    private String currentUserName = "SafeHer user";
+
     private final ArrayList<EmergencyContact> selectedContacts =
             new ArrayList<>();
+
     private FusedLocationProviderClient fusedLocationClient;
+    private RealtimeDatabaseHelper realtimeDatabaseHelper;
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 100;
+
     private double currentLatitude;
     private double currentLongitude;
+
     private boolean locationAvailable = false;
     private boolean isSOSPending = false;
-    private RealtimeDatabaseHelper realtimeDatabaseHelper;
     private boolean isTrackingActive = false;
 
     @Override
@@ -52,13 +57,12 @@ public class EmergencySOSActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_emergency_sos);
 
-        Button backButton = findViewById(R.id.sosBackButton);
-        TextView statusText = findViewById(R.id.sosStatusText);
-
         databaseHelper = new DatabaseHelper(this);
         sessionManager = new SessionManager(this);
+
         fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(this);
+
         realtimeDatabaseHelper = new RealtimeDatabaseHelper();
 
         if (!sessionManager.isLoggedIn()) {
@@ -66,54 +70,31 @@ public class EmergencySOSActivity extends AppCompatActivity {
             return;
         }
 
-        contactsContainer =
-                findViewById(R.id.sosContactsContainer);
+        contactsContainer = findViewById(R.id.sosContactsContainer);
+        statusText = findViewById(R.id.sosStatusText);
+        messagePreview = findViewById(R.id.sosMessagePreview);
+        sendSOSButton = findViewById(R.id.sendSOSButton);
 
-        statusText.setText(
-                "No emergency message has been sent."
-        );
+        Button backButton = findViewById(R.id.sosBackButton);
 
-        backButton.setOnClickListener(v -> {
+        loadCurrentUserName();
+        updateMessagePreview(null);
 
-            if (isTrackingActive) {
+        statusText.setText("SOS is inactive. You are in control.");
 
-                Toast.makeText(
-                        this,
-                        "Please stop SOS tracking before leaving.",
-                        Toast.LENGTH_LONG
-                ).show();
+        backButton.setOnClickListener(v -> goBack());
 
-            } else {
-                finish();
-            }
-        });
         getOnBackPressedDispatcher().addCallback(
                 this,
                 new OnBackPressedCallback(true) {
-
                     @Override
                     public void handleOnBackPressed() {
-
-                        if (isTrackingActive) {
-
-                            Toast.makeText(
-                                    EmergencySOSActivity.this,
-                                    "Please stop SOS tracking before leaving.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-
-                        } else {
-                            finish();
-                        }
+                        goBack();
                     }
                 }
         );
-        // SOS button click listener
-        Button sendSOSButton =
-                findViewById(R.id.sendSOSButton);
 
         sendSOSButton.setOnClickListener(v -> {
-
             if (isTrackingActive) {
                 stopSOSTracking();
             } else {
@@ -124,31 +105,62 @@ public class EmergencySOSActivity extends AppCompatActivity {
         loadTrustedContacts();
     }
 
-    // Load trusted contacts from SQLite
+    private void loadCurrentUserName() {
+
+        User user = databaseHelper.getUserById(
+                sessionManager.getUserId()
+        );
+
+        if (user != null &&
+                user.getFullName() != null &&
+                !user.getFullName().trim().isEmpty()) {
+
+            currentUserName = user.getFullName().trim();
+
+        } else if (sessionManager.getUserName() != null &&
+                !sessionManager.getUserName().trim().isEmpty()) {
+
+            currentUserName = sessionManager.getUserName().trim();
+        }
+    }
+
+    private void goBack() {
+
+        if (isTrackingActive) {
+            Toast.makeText(
+                    this,
+                    "Please stop SOS tracking before leaving.",
+                    Toast.LENGTH_LONG
+            ).show();
+        } else {
+            finish();
+        }
+    }
+
     private void loadTrustedContacts() {
 
         contactsContainer.removeAllViews();
         selectedContacts.clear();
 
-        int userId = sessionManager.getUserId();
-
         ArrayList<EmergencyContact> contacts =
-                databaseHelper.getEmergencyContacts(userId);
+                databaseHelper.getEmergencyContacts(
+                        sessionManager.getUserId()
+                );
 
         if (contacts.isEmpty()) {
 
             TextView emptyText = new TextView(this);
 
             emptyText.setText(
-                    "No trusted contacts saved yet. " +
-                            "Add contacts from the Dashboard first."
+                    "No trusted contacts found.\n" +
+                            "Please add emergency contacts from your Dashboard."
             );
 
-            emptyText.setTextSize(15);
+            emptyText.setTextSize(14);
             emptyText.setTextColor(
-                    android.graphics.Color.parseColor("#33232B")
+                    android.graphics.Color.parseColor("#725665")
             );
-            emptyText.setPadding(8, 16, 8, 16);
+            emptyText.setPadding(12, 20, 12, 20);
 
             contactsContainer.addView(emptyText);
             return;
@@ -167,17 +179,20 @@ public class EmergencySOSActivity extends AppCompatActivity {
             checkBox.setTextColor(
                     android.graphics.Color.parseColor("#33232B")
             );
-            checkBox.setPadding(8, 8, 8, 8);
+            checkBox.setPadding(8, 10, 8, 10);
+            checkBox.setButtonTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#8E3155")
+                    )
+            );
 
             checkBox.setOnCheckedChangeListener(
                     (button, isChecked) -> {
 
                         if (isChecked) {
-
                             if (!selectedContacts.contains(contact)) {
                                 selectedContacts.add(contact);
                             }
-
                         } else {
                             selectedContacts.remove(contact);
                         }
@@ -188,7 +203,6 @@ public class EmergencySOSActivity extends AppCompatActivity {
         }
     }
 
-    // Prepare SOS message and open SMS application
     private void sendSOSAlert() {
 
         if (selectedContacts.isEmpty()) {
@@ -205,21 +219,24 @@ public class EmergencySOSActivity extends AppCompatActivity {
 
         checkLocationPermission();
     }
+
     private void checkLocationPermission() {
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED ||
+        boolean fineGranted =
+                ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED;
+
+        boolean coarseGranted =
                 ContextCompat.checkSelfPermission(
                         this,
                         Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED) {
+                ) == PackageManager.PERMISSION_GRANTED;
 
+        if (fineGranted || coarseGranted) {
             getCurrentLocation();
-
         } else {
-
             ActivityCompat.requestPermissions(
                     this,
                     new String[]{
@@ -255,16 +272,11 @@ public class EmergencySOSActivity extends AppCompatActivity {
                 currentLongitude = location.getLongitude();
                 locationAvailable = true;
 
-                Toast.makeText(
-                        this,
-                        "Current location obtained successfully!",
-                        Toast.LENGTH_SHORT
-                ).show();
-
                 if (isSOSPending) {
                     isSOSPending = false;
                     openSOSMessage();
                 }
+
             } else {
 
                 locationAvailable = false;
@@ -272,10 +284,11 @@ public class EmergencySOSActivity extends AppCompatActivity {
 
                 Toast.makeText(
                         this,
-                        "Unable to get location. Please enable GPS.",
+                        "Unable to get your location. Please enable GPS and try again.",
                         Toast.LENGTH_LONG
                 ).show();
             }
+
         }).addOnFailureListener(error -> {
 
             locationAvailable = false;
@@ -291,13 +304,11 @@ public class EmergencySOSActivity extends AppCompatActivity {
 
     private void openSOSMessage() {
 
-        // Start saving SOS information in Firebase
         realtimeDatabaseHelper.startSOS(
                 currentLatitude,
                 currentLongitude
         );
 
-        // Start continuous GPS tracking
         Intent trackingIntent =
                 new Intent(this, LocationTrackingService.class);
 
@@ -312,25 +323,25 @@ public class EmergencySOSActivity extends AppCompatActivity {
 
         isTrackingActive = true;
 
-        Button sendSOSButton =
-                findViewById(R.id.sendSOSButton);
-
-        sendSOSButton.setText("Stop SOS");
-
+        sendSOSButton.setText("STOP SOS TRACKING");
         sendSOSButton.setBackgroundTintList(
                 android.content.res.ColorStateList.valueOf(
                         android.graphics.Color.parseColor("#388E3C")
                 )
         );
 
-        TextView statusText =
-                findViewById(R.id.sosStatusText);
-
         statusText.setText(
-                "SOS Active - Live location tracking is running."
+                "SOS ACTIVE • Your live location is being shared."
         );
 
-        // Get readable address from API
+        statusText.setBackgroundColor(
+                android.graphics.Color.parseColor("#E4F5E8")
+        );
+
+        statusText.setTextColor(
+                android.graphics.Color.parseColor("#216B35")
+        );
+
         GeocodingHelper.getAddress(
                 currentLatitude,
                 currentLongitude,
@@ -338,19 +349,16 @@ public class EmergencySOSActivity extends AppCompatActivity {
 
                     @Override
                     public void onSuccess(String address) {
-
                         openSMSComposer(address);
                     }
 
                     @Override
                     public void onError(String error) {
-
-                        // If API fails, send coordinates only
                         openSMSComposer(null);
 
                         Toast.makeText(
                                 EmergencySOSActivity.this,
-                                "Address could not be fetched. Sending GPS coordinates instead.",
+                                "Address unavailable. GPS coordinates will be included instead.",
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -358,26 +366,44 @@ public class EmergencySOSActivity extends AppCompatActivity {
         );
     }
 
-    private void openSMSComposer(String address) {
+    private String buildSOSMessage(String address) {
 
         String message =
-                "EMERGENCY SOS! I may be in danger. " +
-                        "Please contact me as soon as possible.\n\n" +
-                        "My current location:\n";
+                "EMERGENCY ALERT!\n\n" +
+                        "Hello, this is " + currentUserName + ". " +
+                        "I may be in an unsafe situation and need your help. " +
+                        "Please check on me and help ensure my safety.\n\n" +
+                        "MY CURRENT LOCATION:\n";
 
-        if (address != null && !address.isEmpty()) {
-
-            message +=
-                    "Address: " + address + "\n\n";
+        if (address != null && !address.trim().isEmpty()) {
+            message += "Address: " + address.trim() + "\n";
         }
 
-        message +=
-                "GPS Coordinates: " +
-                        currentLatitude + ", " + currentLongitude +
-                        "\n\n" +
-                        "Google Maps:\n" +
-                        "https://maps.google.com/?q=" +
-                        currentLatitude + "," + currentLongitude;
+        if (locationAvailable) {
+            message +=
+                    "GPS Coordinates: " +
+                            currentLatitude + ", " + currentLongitude + "\n\n" +
+                            "Google Maps:\n" +
+                            "https://maps.google.com/?q=" +
+                            currentLatitude + "," + currentLongitude;
+        } else {
+            message += "Location is currently unavailable.";
+        }
+
+        return message;
+    }
+
+    private void updateMessagePreview(String address) {
+
+        if (messagePreview != null) {
+            messagePreview.setText(buildSOSMessage(address));
+        }
+    }
+
+    private void openSMSComposer(String address) {
+
+        String message = buildSOSMessage(address);
+        updateMessagePreview(address);
 
         ArrayList<String> phoneNumbers = new ArrayList<>();
 
@@ -390,8 +416,7 @@ public class EmergencySOSActivity extends AppCompatActivity {
                 phoneNumbers
         );
 
-        Intent smsIntent =
-                new Intent(Intent.ACTION_SENDTO);
+        Intent smsIntent = new Intent(Intent.ACTION_SENDTO);
 
         smsIntent.setData(
                 Uri.parse("smsto:" + recipients)
@@ -400,14 +425,13 @@ public class EmergencySOSActivity extends AppCompatActivity {
         smsIntent.putExtra("sms_body", message);
 
         try {
-
             startActivity(smsIntent);
 
-        } catch (android.content.ActivityNotFoundException e) {
+        } catch (ActivityNotFoundException e) {
 
             Toast.makeText(
                     this,
-                    "No SMS application found.",
+                    "No SMS application found on this device.",
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -437,7 +461,6 @@ public class EmergencySOSActivity extends AppCompatActivity {
             }
 
             if (permissionGranted) {
-
                 getCurrentLocation();
 
             } else {
@@ -452,6 +475,7 @@ public class EmergencySOSActivity extends AppCompatActivity {
             }
         }
     }
+
     private void stopSOSTracking() {
 
         Intent trackingIntent =
@@ -463,21 +487,39 @@ public class EmergencySOSActivity extends AppCompatActivity {
 
         isTrackingActive = false;
 
-        Button sendSOSButton = findViewById(R.id.sendSOSButton);
-        sendSOSButton.setText("Send SOS");
+        sendSOSButton.setText("SEND SOS ALERT");
+
         sendSOSButton.setBackgroundTintList(
                 android.content.res.ColorStateList.valueOf(
                         android.graphics.Color.parseColor("#D32F2F")
                 )
         );
 
-        TextView statusText = findViewById(R.id.sosStatusText);
-        statusText.setText("SOS ended. Live location tracking stopped.");
+        statusText.setText(
+                "SOS ended. Your live location tracking has stopped."
+        );
+
+        statusText.setBackgroundColor(
+                android.graphics.Color.parseColor("#FCE7F3")
+        );
+
+        statusText.setTextColor(
+                android.graphics.Color.parseColor("#8E3155")
+        );
 
         Toast.makeText(
                 this,
-                "SOS stopped successfully.",
+                "SOS tracking stopped successfully.",
                 Toast.LENGTH_SHORT
         ).show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if (databaseHelper != null) {
+            databaseHelper.close();
+        }
     }
 }
