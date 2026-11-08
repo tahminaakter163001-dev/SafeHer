@@ -1,4 +1,3 @@
-
 package com.example.safeher;
 
 import android.Manifest;
@@ -38,9 +37,6 @@ public class ProfileActivity extends AppCompatActivity {
 
     private static final int GALLERY_PERMISSION_REQUEST = 101;
     private static final int GALLERY_IMAGE_REQUEST = 102;
-
-    private static final String PROFILE_IMAGE_FILE =
-            "profile_picture.jpg";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +89,17 @@ public class ProfileActivity extends AppCompatActivity {
             loadProfile();
             loadSavedProfileImage();
         }
+    }
+
+    // Get a separate image file for each user
+    private File getProfileImageFile() {
+
+        int userId = sessionManager.getUserId();
+
+        return new File(
+                getFilesDir(),
+                "profile_picture_" + userId + ".jpg"
+        );
     }
 
     private void checkGalleryPermission() {
@@ -180,22 +187,20 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void saveProfileImage(Uri imageUri) {
 
+        FileOutputStream outputStream = null;
+        InputStream inputStream = null;
+
         try {
 
-            InputStream inputStream =
-                    getContentResolver().openInputStream(imageUri);
+            inputStream = getContentResolver().openInputStream(imageUri);
 
             if (inputStream == null) {
                 throw new Exception("Unable to open selected image.");
             }
 
-            File imageFile = new File(
-                    getFilesDir(),
-                    PROFILE_IMAGE_FILE
-            );
+            File imageFile = getProfileImageFile();
 
-            FileOutputStream outputStream =
-                    new FileOutputStream(imageFile);
+            outputStream = new FileOutputStream(imageFile);
 
             byte[] buffer = new byte[4096];
             int length;
@@ -204,8 +209,7 @@ public class ProfileActivity extends AppCompatActivity {
                 outputStream.write(buffer, 0, length);
             }
 
-            outputStream.close();
-            inputStream.close();
+            outputStream.flush();
 
             loadSavedProfileImage();
 
@@ -224,15 +228,27 @@ public class ProfileActivity extends AppCompatActivity {
             ).show();
 
             e.printStackTrace();
+
+        } finally {
+
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
     private void loadSavedProfileImage() {
 
-        File imageFile = new File(
-                getFilesDir(),
-                PROFILE_IMAGE_FILE
-        );
+        File imageFile = getProfileImageFile();
 
         if (imageFile.exists()) {
 
@@ -242,7 +258,14 @@ public class ProfileActivity extends AppCompatActivity {
 
             if (bitmap != null) {
                 profileImage.setImageBitmap(bitmap);
+            } else {
+                profileImage.setImageResource(R.drawable.ic_launcher_foreground);
             }
+
+        } else {
+
+            // Show default image when this user has no saved photo
+            profileImage.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
 
