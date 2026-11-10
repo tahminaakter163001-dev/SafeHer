@@ -1,109 +1,190 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFF7FA"
-    android:padding="24dp">
+    android:fillViewport="true"
+    android:clipToPadding="false">
 
-    <TextView
-        android:id="@+id/registerTitle"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Create Account"
-        android:textColor="#8E3155"
-        android:textSize="30sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintVertical_bias="0.25"
-        app:layout_constraintBottom_toTopOf="@id/registerSubtitle"/>
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="32dp">
 
-    <TextView
-        android:id="@+id/registerSubtitle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center"
-        android:text="Join SafeHer and take a step toward safety"
-        android:textColor="#725665"
-        android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/registerTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <ImageView
+            android:layout_width="85dp"
+            android:layout_height="85dp"
+            android:src="@mipmap/safeher_logo"
+            android:contentDescription="SafeHer Logo"
+            android:scaleType="fitCenter" />
 
-    <EditText
-        android:id="@+id/fullNameInput"
-        android:layout_width="0dp"
-        android:layout_height="54dp"
-        android:layout_marginTop="28dp"
-        android:hint="Full name"
-        android:textColorHint="#999999"
-        android:inputType="textPersonName|textCapWords"
-        android:textColor="#8E3155"
-        android:singleLine="true"
-        android:padding="12dp"
-        app:layout_constraintTop_toBottomOf="@id/registerSubtitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SafeHer"
+            android:textColor="#8E3155"
+            android:textSize="28sp"
+            android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/emailInput"
-        android:layout_width="0dp"
-        android:layout_height="54dp"
-        android:layout_marginTop="12dp"
-        android:hint="Email address"
-        android:textColorHint="#999999"
-        android:inputType="textEmailAddress"
-        android:textColor="#8E3155"
-        android:singleLine="true"
-        android:padding="12dp"
-        app:layout_constraintTop_toBottomOf="@id/fullNameInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="Your safety, our priority"
+            android:textColor="#8B7180"
+            android:textSize="14sp" />
 
-    <EditText
-        android:id="@+id/registerPasswordInput"
-        android:layout_width="0dp"
-        android:layout_height="54dp"
-        android:layout_marginTop="12dp"
-        android:hint="Create password (min. 8 characters)"
-        android:textColorHint="#999999"
-        android:inputType="textPassword"
-        android:textColor="#8E3155"
-        android:singleLine="true"
-        android:padding="12dp"
-        app:layout_constraintTop_toBottomOf="@id/emailInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="5dp"
+            app:strokeColor="#F2DCE6"
+            app:strokeWidth="1dp">
 
-    <Button
-        android:id="@+id/registerButton"
-        android:layout_width="0dp"
-        android:layout_height="56dp"
-        android:layout_marginTop="24dp"
-        android:backgroundTint="#8E3155"
-        android:text="Create Account"
-        android:textAllCaps="false"
-        android:textColor="#FFFFFF"
-        app:cornerRadius="14dp"
-        app:layout_constraintTop_toBottomOf="@id/registerPasswordInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
 
-    <TextView
-        android:id="@+id/backToLogin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Already have an account? Login"
-        android:textColor="#8E3155"
-        android:textSize="14sp"
-        android:padding="8dp"
-        app:layout_constraintTop_toBottomOf="@id/registerButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+                <TextView
+                    android:id="@+id/registerTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Create Account"
+                    android:textAlignment="center"
+                    android:textColor="#8E3155"
+                    android:textSize="25sp"
+                    android:textStyle="bold" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+                <TextView
+                    android:id="@+id/registerSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="Join SafeHer and take a step toward safety"
+                    android:textColor="#806B78"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="24dp"
+                    app:cardBackgroundColor="#FFF9FB"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="#EAD4DF"
+                    app:strokeWidth="1dp">
+
+                    <EditText
+                        android:id="@+id/fullNameInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@null"
+                        android:hint="Full name"
+                        android:inputType="textPersonName|textCapWords"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:singleLine="true"
+                        android:textColor="#462B3A"
+                        android:textColorHint="#A58F9B"
+                        android:textSize="14sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="#FFF9FB"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="#EAD4DF"
+                    app:strokeWidth="1dp">
+
+                    <EditText
+                        android:id="@+id/emailInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@null"
+                        android:hint="Email address"
+                        android:inputType="textEmailAddress"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:singleLine="true"
+                        android:textColor="#462B3A"
+                        android:textColorHint="#A58F9B"
+                        android:textSize="14sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="#FFF9FB"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="#EAD4DF"
+                    app:strokeWidth="1dp">
+
+                    <EditText
+                        android:id="@+id/registerPasswordInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@null"
+                        android:hint="Create password (min. 8 characters)"
+                        android:inputType="textPassword"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:singleLine="true"
+                        android:textColor="#462B3A"
+                        android:textColorHint="#A58F9B"
+                        android:textSize="14sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <Button
+                    android:id="@+id/registerButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="22dp"
+                    android:backgroundTint="#8E3155"
+                    android:text="Create Account"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp" />
+
+                <TextView
+                    android:id="@+id/backToLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:text="Already have an account? Login"
+                    android:textColor="#8E3155"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="You deserve to feel safe."
+            android:textColor="#A58F9B"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>
